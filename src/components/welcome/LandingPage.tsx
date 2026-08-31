@@ -16,7 +16,6 @@ import {
   Map as MapIcon,
   Sparkles,
 } from 'lucide-react'
-import { ReferenceMapPreview } from './ReferenceMapPreview'
 
 const TOOLS = [
   { icon: MousePointer2, label: 'Seleccionar', desc: 'Elige y edita elementos del mapa.' },
@@ -66,41 +65,35 @@ export function LandingPage({ onEnter }: { onEnter: () => void }) {
       </header>
 
       <main className="mx-auto max-w-6xl px-6">
-        <section className="grid items-center gap-10 py-16 lg:grid-cols-2 lg:py-24">
-          <div>
-            <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600">
-              <Sparkles className="h-3.5 w-3.5" />
-              Creador de mapas turísticos
+        <section className="py-16 text-center lg:py-24">
+          <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600">
+            <Sparkles className="h-3.5 w-3.5" />
+            Creador de mapas turísticos
+          </span>
+          <h1 className="mx-auto mt-5 max-w-3xl text-4xl font-extrabold leading-tight tracking-tight text-slate-900 sm:text-5xl">
+            Diseña mapas turísticos{' '}
+            <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              profesionales
             </span>
-            <h1 className="mt-5 text-4xl font-extrabold leading-tight tracking-tight text-slate-900 sm:text-5xl">
-              Diseña mapas turísticos{' '}
-              <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                profesionales
-              </span>
-            </h1>
-            <p className="mt-5 max-w-xl text-lg leading-relaxed text-slate-500">
-              Marca sitios de interés, traza rutas, organízalos en capas y expórtalos como
-              imagen o PDF. Todo desde el navegador, sin instalar nada.
-            </p>
-            <div className="mt-8 flex flex-wrap items-center gap-3">
-              <button
-                onClick={onEnter}
-                className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 px-6 py-3 text-base font-semibold text-white shadow-lg shadow-blue-500/30 transition-all hover:to-blue-600 hover:shadow-xl active:scale-95"
-              >
-                Entrar al editor
-                <ArrowRight className="h-5 w-5" />
-              </button>
-              <a
-                href="#como-funciona"
-                className="rounded-xl border border-slate-200 bg-white px-6 py-3 text-base font-semibold text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-900"
-              >
-                Cómo funciona
-              </a>
-            </div>
-          </div>
-
-          <div className="relative h-80 w-full overflow-hidden rounded-2xl ring-1 ring-slate-200 lg:h-[26rem]">
-            <ReferenceMapPreview />
+          </h1>
+          <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-slate-500">
+            Marca sitios de interés, traza rutas, organízalos en capas y expórtalos como
+            imagen o PDF. Todo desde el navegador, sin instalar nada.
+          </p>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            <button
+              onClick={onEnter}
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 px-6 py-3 text-base font-semibold text-white shadow-lg shadow-blue-500/30 transition-all hover:to-blue-600 hover:shadow-xl active:scale-95"
+            >
+              Entrar al editor
+              <ArrowRight className="h-5 w-5" />
+            </button>
+            <a
+              href="#como-funciona"
+              className="rounded-xl border border-slate-200 bg-white px-6 py-3 text-base font-semibold text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-900"
+            >
+              Cómo funciona
+            </a>
           </div>
         </section>
 

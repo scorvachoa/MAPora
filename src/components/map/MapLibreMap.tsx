@@ -240,11 +240,11 @@ export function MapLibreMap() {
 
     const newMap = new maplibregl.Map({
       container: mapContainer.current,
+      style: MAP_STYLE,
       center: [-72.545, -13.163],
       zoom: 13,
-      // Required so html2canvas/export can read the WebGL canvas via toDataURL.
-      preserveDrawingBuffer: true,
-    } as maplibregl.MapOptions)
+      canvasContextAttributes: { preserveDrawingBuffer: true },
+    })
 
     newMap.on('error', () => setError('Error al cargar el mapa'))
     newMap.on('load', () => { setIsMapLoaded(true); mapRef.current = newMap })
@@ -266,14 +266,9 @@ export function MapLibreMap() {
     newMap.addControl(new maplibregl.NavigationControl(), 'bottom-right')
     newMap.addControl(new maplibregl.ScaleControl(), 'bottom-left')
     newMap.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right')
-    newMap.setStyle(MAP_STYLE)
     setMapInstance(newMap)
 
-    const timeout = setTimeout(() => {
-      if (!mapRef.current) { mapRef.current = newMap; setIsMapLoaded(true) }
-    }, 3000)
-
-    return () => { clearTimeout(timeout); newMap.remove(); mapRef.current = null }
+    return () => { newMap.remove(); mapRef.current = null }
   }, [])
 
   useEffect(() => {
@@ -287,7 +282,7 @@ export function MapLibreMap() {
   }, [pendingAction, clearAction])
 
   // Apply map style changes coming from the UI (map-store.settings.style).
-  const appliedStyleRef = useRef<MapStyle | null>(null)
+  const appliedStyleRef = useRef<MapStyle | null>(settings.style)
   useEffect(() => {
     if (!isMapLoaded || !mapRef.current) return
     if (appliedStyleRef.current === settings.style) return
