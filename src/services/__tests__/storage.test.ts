@@ -19,19 +19,24 @@ function makeProject(id = 'project-1'): MapProject {
 
 async function clearDb() {
   const db = await new Promise<IDBDatabase>((res, rej) => {
-    const req = indexedDB.open('mapora-db', 1)
+    const req = indexedDB.open('mapora-db', 2)
     req.onupgradeneeded = (e) => {
       const d = (e.target as IDBOpenDBRequest).result
       if (!d.objectStoreNames.contains('projects')) {
         d.createObjectStore('projects', { keyPath: 'id' })
+      }
+      if (!d.objectStoreNames.contains('snapshots')) {
+        const store = d.createObjectStore('snapshots', { keyPath: 'id' })
+        store.createIndex('projectId', 'projectId', { unique: false })
       }
     }
     req.onsuccess = () => res(req.result)
     req.onerror = () => rej(req.error)
   })
   await new Promise<void>((res, rej) => {
-    const tx = db.transaction('projects', 'readwrite')
+    const tx = db.transaction(['projects', 'snapshots'], 'readwrite')
     tx.objectStore('projects').clear()
+    tx.objectStore('snapshots').clear()
     tx.oncomplete = () => res()
     tx.onerror = () => rej(tx.error)
     tx.onabort = () => rej(tx.error)

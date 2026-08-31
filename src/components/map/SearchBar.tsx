@@ -8,6 +8,7 @@ export function SearchBar() {
   const [results, setResults] = useState<GeocodingResult[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
+  const [selectedIndex, setSelectedIndex] = useState(-1)
   const inputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const { triggerAction } = useMapActionsStore()
@@ -33,11 +34,28 @@ export function SearchBar() {
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
-      search()
+      if (selectedIndex >= 0 && selectedIndex < results.length) {
+        handleResultClick(results[selectedIndex])
+      } else {
+        search()
+      }
+      return
     }
     if (e.key === 'Escape') {
       setIsOpen(false)
+      setSelectedIndex(-1)
       inputRef.current?.blur()
+      return
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setSelectedIndex((prev) => Math.min(prev + 1, results.length - 1))
+      return
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setSelectedIndex((prev) => Math.max(prev - 1, -1))
+      return
     }
   }
 
@@ -87,10 +105,15 @@ export function SearchBar() {
             ref={inputRef}
             type="text"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => { setQuery(e.target.value); setSelectedIndex(-1) }}
             onKeyDown={handleKeyDown}
             onFocus={() => results.length > 0 && setIsOpen(true)}
             placeholder="Buscar en el mapa"
+            role="combobox"
+            aria-expanded={isOpen}
+            aria-autocomplete="list"
+            aria-controls="search-results"
+            aria-activedescendant={selectedIndex >= 0 ? `search-result-${selectedIndex}` : undefined}
             className="flex-1 py-3 pr-2 text-sm text-gray-700 placeholder-gray-400 focus:outline-none"
           />
           {query && (
@@ -110,12 +133,16 @@ export function SearchBar() {
         </div>
 
         {isOpen && results.length > 0 && (
-          <div className="search-dropdown mt-1">
-            {results.map((result) => (
+          <div id="search-results" role="listbox" className="search-dropdown mt-1">
+            {results.map((result, index) => (
               <div
                 key={result.place_id}
-                className="search-item"
+                id={`search-result-${index}`}
+                role="option"
+                aria-selected={index === selectedIndex}
+                className={`search-item ${index === selectedIndex ? 'bg-blue-50' : ''}`}
                 onClick={() => handleResultClick(result)}
+                onMouseEnter={() => setSelectedIndex(index)}
               >
                 <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center shrink-0 mt-0.5">
                   <MapPin className="h-4 w-4 text-gray-500" />

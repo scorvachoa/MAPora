@@ -8,7 +8,7 @@ export function useMapDrawing(mapRef: React.RefObject<any>, isMapLoaded: boolean
   const tempLayerRef = useRef<string | null>(null)
   const activeToolRef = useRef<Tool>('select')
   const activeLayerIdRef = useRef<string | null>(null)
-  const { activeTool, activeLayerId, setSelectedElement } = useEditorStore()
+  const { activeTool, activeLayerId, setSelectedElement, setDrawing, setDrawingRemoveLastPoint } = useEditorStore()
   const { addRoute, addShape } = useProjectStore()
 
   useEffect(() => {
@@ -29,6 +29,53 @@ export function useMapDrawing(mapRef: React.RefObject<any>, isMapLoaded: boolean
     }
     drawingPointsRef.current = []
   }, [mapRef])
+
+  const redrawTempLayer = useCallback(() => {
+    if (!mapRef.current) return
+    const map = mapRef.current
+    if (tempLayerRef.current) {
+      if (map.getLayer(tempLayerRef.current)) map.removeLayer(tempLayerRef.current)
+      if (map.getSource(tempLayerRef.current)) map.removeSource(tempLayerRef.current)
+    }
+    if (drawingPointsRef.current.length === 0) {
+      tempLayerRef.current = null
+      return
+    }
+    const sourceId = `temp-drawing`
+    tempLayerRef.current = sourceId
+    map.addSource(sourceId, {
+      type: 'geojson',
+      data: {
+        type: 'Feature',
+        properties: {},
+        geometry: { type: 'LineString', coordinates: drawingPointsRef.current },
+      },
+    })
+    map.addLayer({
+      id: sourceId,
+      type: 'line',
+      source: sourceId,
+      layout: { 'line-join': 'round', 'line-cap': 'round' },
+      paint: { 'line-color': '#3b82f6', 'line-width': 3, 'line-opacity': 0.8, 'line-dasharray': [2, 2] },
+    })
+  }, [mapRef])
+
+  const removeLastDrawingPoint = useCallback(() => {
+    if (drawingPointsRef.current.length === 0) return
+    drawingPointsRef.current.pop()
+    redrawTempLayer()
+  }, [redrawTempLayer])
+
+  // Track drawing state
+  const isDrawingTool = activeTool === 'route' || activeTool === 'line' || activeTool === 'polygon'
+  useEffect(() => {
+    setDrawing(isDrawingTool)
+    if (isDrawingTool) {
+      setDrawingRemoveLastPoint(removeLastDrawingPoint)
+    } else {
+      setDrawingRemoveLastPoint(null)
+    }
+  }, [isDrawingTool, setDrawing, setDrawingRemoveLastPoint, removeLastDrawingPoint])
 
   // Clean up when switching away from drawing tools + toggle double-click zoom
   useEffect(() => {
@@ -53,32 +100,7 @@ export function useMapDrawing(mapRef: React.RefObject<any>, isMapLoaded: boolean
       if (tool === 'route' || tool === 'line' || tool === 'polygon') {
         const { lng, lat } = e.lngLat
         drawingPointsRef.current.push([lng, lat])
-
-        // Update temp layer
-        if (tempLayerRef.current) {
-          if (map.getLayer(tempLayerRef.current)) map.removeLayer(tempLayerRef.current)
-          if (map.getSource(tempLayerRef.current)) map.removeSource(tempLayerRef.current)
-        }
-
-        const sourceId = `temp-drawing`
-        tempLayerRef.current = sourceId
-
-        map.addSource(sourceId, {
-          type: 'geojson',
-          data: {
-            type: 'Feature',
-            properties: {},
-            geometry: { type: 'LineString', coordinates: drawingPointsRef.current },
-          },
-        })
-
-        map.addLayer({
-          id: sourceId,
-          type: 'line',
-          source: sourceId,
-          layout: { 'line-join': 'round', 'line-cap': 'round' },
-          paint: { 'line-color': '#3b82f6', 'line-width': 3, 'line-opacity': 0.8, 'line-dasharray': [2, 2] },
-        })
+        redrawTempLayer()
       }
     }
 
@@ -147,5 +169,5 @@ export function useMapDrawing(mapRef: React.RefObject<any>, isMapLoaded: boolean
       map.off('click', handleMapClick)
       map.off('dblclick', handleDoubleClick)
     }
-  }, [addRoute, addShape, clearTempLayer, mapRef, isMapLoaded])
+  }, [addRoute, addShape, clearTempLayer, redrawTempLayer, setSelectedElement, mapRef, isMapLoaded])
 }

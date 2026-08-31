@@ -17,6 +17,7 @@ interface EditorState {
   selectedElementId: string | null
   activeLayerId: string | null
   isDrawing: boolean
+  drawingRemoveLastPoint: (() => void) | null
   imageModal: { open: boolean; mode: 'new' | 'edit'; imageId?: string }
   canUndo: boolean
   canRedo: boolean
@@ -24,6 +25,7 @@ interface EditorState {
   setSelectedElement: (id: string | null) => void
   setActiveLayer: (id: string | null) => void
   setDrawing: (drawing: boolean) => void
+  setDrawingRemoveLastPoint: (fn: (() => void) | null) => void
   openImageModal: (mode: 'new' | 'edit', imageId?: string) => void
   closeImageModal: () => void
   resetHistory: (project: MapProject | null) => void
@@ -37,6 +39,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   selectedElementId: null,
   activeLayerId: null,
   isDrawing: false,
+  drawingRemoveLastPoint: null,
   canUndo: false,
   canRedo: false,
   imageModal: { open: false, mode: 'new' },
@@ -44,6 +47,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   setSelectedElement: (id) => set({ selectedElementId: id }),
   setActiveLayer: (id) => set({ activeLayerId: id }),
   setDrawing: (drawing) => set({ isDrawing: drawing }),
+  setDrawingRemoveLastPoint: (fn) => set({ drawingRemoveLastPoint: fn }),
   openImageModal: (mode, imageId) => set({ imageModal: { open: true, mode, imageId } }),
   closeImageModal: () => set({ imageModal: { open: false, mode: 'new' } }),
 
@@ -69,8 +73,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const prev = undoStack.undo()
     if (prev === null) return
     applyingHistory = true
-    useProjectStore.setState({ project: prev })
-    applyingHistory = false
+    try {
+      useProjectStore.setState({ project: prev })
+    } finally {
+      applyingHistory = false
+    }
     set({ canUndo: undoStack.canUndo, canRedo: undoStack.canRedo, selectedElementId: null })
   },
 
@@ -78,8 +85,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const next = undoStack.redo()
     if (next === null) return
     applyingHistory = true
-    useProjectStore.setState({ project: next })
-    applyingHistory = false
+    try {
+      useProjectStore.setState({ project: next })
+    } finally {
+      applyingHistory = false
+    }
     set({ canUndo: undoStack.canUndo, canRedo: undoStack.canRedo, selectedElementId: null })
   },
 }))

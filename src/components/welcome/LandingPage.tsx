@@ -15,12 +15,16 @@ import {
   ArrowRight,
   Map as MapIcon,
   Sparkles,
+  History,
+  FileText,
+  Keyboard,
+  CircleDot,
 } from 'lucide-react'
 
 const TOOLS = [
   { icon: MousePointer2, label: 'Seleccionar', desc: 'Elige y edita elementos del mapa.' },
   { icon: MapPin, label: 'Añadir punto', desc: 'Marca sitios de interés (POI).' },
-  { icon: Navigation, label: 'Ruta A-B', desc: 'Calcula una ruta entre dos puntos.' },
+  { icon: Navigation, label: 'Ruta A-B', desc: 'Calcula una ruta entre dos puntos (múltiples permitidas).' },
   { icon: Route, label: 'Dibujar línea', desc: 'Traza senderos y recorridos a mano.' },
   { icon: Pentagon, label: 'Dibujar forma', desc: 'Crea áreas y polígonos.' },
   { icon: Type, label: 'Añadir texto', desc: 'Etiquetas y títulos personalizados.' },
@@ -28,17 +32,22 @@ const TOOLS = [
 ]
 
 const FEATURES = [
-  { icon: Layers, label: 'Capas organizadas', desc: 'Agrupa puntos y rutas por tema, con colores y visibilidad.' },
-  { icon: Palette, label: 'Estilos de mapa', desc: 'Estándar, claro, oscuro, turístico, OpenStreetMap y topográfico.' },
+  { icon: Layers, label: 'Capas organizadas', desc: 'Agrupa puntos y rutas por tema, con colores y visibilidad tipo Photoshop.' },
+  { icon: Palette, label: 'Estilos de mapa', desc: 'Callejero, satélite, híbrido, terreno, OpenStreetMap y topográfico.' },
   { icon: Undo2, label: 'Historial', desc: 'Deshaz y rehaz cualquier cambio al instante.' },
   { icon: Save, label: 'Guardado automático', desc: 'Tu proyecto se guarda en el navegador y puedes exportarlo.' },
-  { icon: Download, label: 'Exportar', desc: 'Descarga tu mapa como imagen o PDF.' },
+  { icon: Download, label: 'Exportar', desc: 'Descarga tu mapa como imagen, PDF o archivo .mapora.' },
   { icon: Compass, label: 'Vistas precisas', desc: 'Controla zoom, inclinación y norte de forma exacta.' },
+  { icon: CircleDot, label: 'Nodos editables', desc: 'Arrastra vértices de rutas y formas para ajustar su trazado.' },
+  { icon: History, label: 'Versiones', desc: 'Guarda snapshots del proyecto y restaura versiones anteriores.' },
+  { icon: FileText, label: 'Guardar como', desc: 'Duplica tu proyecto para crear variantes sin perder el original.' },
+  { icon: Keyboard, label: 'Atajos de teclado', desc: 'Ctrl+Z deshacer, Ctrl+S guardar, y más. Pulsa ? para ver todos.' },
 ]
 
 const STEPS = [
   'Selecciona una herramienta en la barra lateral izquierda.',
   'Haz clic en el mapa para colocar puntos o trazar rutas.',
+  'Edita los nodos arrastrando vértices para afinar el trazado.',
   'Organiza todo en capas y elige el estilo visual.',
   'Exporta tu mapa turístico final con un solo clic.',
 ]
@@ -77,8 +86,8 @@ export function LandingPage({ onEnter }: { onEnter: () => void }) {
             </span>
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-slate-500">
-            Marca sitios de interés, traza rutas, organízalos en capas y expórtalos como
-            imagen o PDF. Todo desde el navegador, sin instalar nada.
+            Marca sitios de interés, traza rutas con nodos editables, organízalos en capas
+            y expórtalos como imagen o PDF. Todo desde el navegador, sin instalar nada.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <button

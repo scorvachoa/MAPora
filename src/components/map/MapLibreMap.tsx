@@ -14,6 +14,7 @@ import { useMapShapes } from '@/hooks/use-map-shapes'
 import { useMapImages } from '@/hooks/use-map-images'
 import { useMapDrawing } from '@/hooks/use-map-drawing'
 import { ImageSourceModal } from '@/components/modals/ImageSourceModal'
+import { NodeOverlay } from './NodeOverlay'
 import { routingService, type RouteProfile, getProfileLabel } from '@/services/routing'
 import { MAP_STYLE, getMapStyleSpec } from '@/constants/map-styles'
 import { setMaplibregl } from '@/lib/maplibre'
@@ -23,7 +24,7 @@ import type { Coordinates, Tool, MapStyle } from '@/types/map'
 setWorkerUrl(maplibreWorkerUrl)
 setMaplibregl({ Marker } as typeof maplibregl)
 
-const ROUTE_AB_ID = 'route-ab'
+const ROUTE_AB_PREFIX = 'route-ab-'
 
 export function MapLibreMap() {
   const mapContainer = useRef<HTMLDivElement>(null)
@@ -32,16 +33,20 @@ export function MapLibreMap() {
   const markerBRef = useRef<any>(null)
   const pointARef = useRef<Coordinates | null>(null)
   const pointBRef = useRef<Coordinates | null>(null)
+  const selectedMarkerARef = useRef<any>(null)
+  const selectedMarkerBRef = useRef<any>(null)
   const activeToolRef = useRef<Tool>('select')
   const profileRef = useRef<RouteProfile>('car')
   const activeLayerIdRef = useRef<string | null>(null)
+  const moveFrameRef = useRef<number | null>(null)
 
   const [isMapLoaded, setIsMapLoaded] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [routePanel, setRoutePanel] = useState({ visible: false, pointA: null as Coordinates | null, pointB: null as Coordinates | null, calculating: false, errorMsg: null as string | null, profile: 'car' as RouteProfile })
+  const currentRouteIdRef = useRef<string | null>(null)
 
   const { setCenter, setZoom, setPitch, setBearing, settings, bumpStyleEpoch } = useMapStore()
-  const { activeTool, setSelectedElement, setActiveTool, activeLayerId, imageModal, openImageModal, closeImageModal } = useEditorStore()
+  const { activeTool, setSelectedElement, setActiveTool, activeLayerId, selectedElementId, imageModal, openImageModal, closeImageModal } = useEditorStore()
   const { project, addMarker, addRoute, addText, addImage, removeRoute, updateImage } = useProjectStore()
   const projectMap = useProjectStore((s) => s.project?.map)
   const { pendingAction, clearAction } = useMapActionsStore()
@@ -53,7 +58,7 @@ export function MapLibreMap() {
   useMapImages(mapRef)
   useMapDrawing(mapRef, isMapLoaded)
 
-  const routeABRoute = project?.routes.find((r) => r.id === ROUTE_AB_ID)
+  const routeABRoute = currentRouteIdRef.current ? project?.routes.find((r) => r.id === currentRouteIdRef.current) : null
 
   // Sync refs with state
   useEffect(() => {
@@ -122,9 +127,11 @@ export function MapLibreMap() {
     try {
       const result = await routingService.calculateRoute(a, b, profile)
       const profileLabel = getProfileLabel(profile)
-      removeRoute(ROUTE_AB_ID)
+      if (currentRouteIdRef.current) removeRoute(currentRouteIdRef.current)
+      const routeId = `${ROUTE_AB_PREFIX}${Date.now()}`
+      currentRouteIdRef.current = routeId
       addRoute({
-        id: ROUTE_AB_ID,
+        id: routeId,
         layerId: activeLayerIdRef.current || project?.layers[0]?.id || 'layer-default',
         name: `Ruta A → B (${profileLabel})`,
         coordinates: result.coordinates,
@@ -180,7 +187,10 @@ export function MapLibreMap() {
     if (markerBRef.current) { markerBRef.current.remove(); markerBRef.current = null }
     pointARef.current = null
     pointBRef.current = null
-    removeRoute(ROUTE_AB_ID)
+    if (currentRouteIdRef.current) {
+      removeRoute(currentRouteIdRef.current)
+      currentRouteIdRef.current = null
+    }
   }, [removeRoute])
 
   // Single stable click handler using ref
@@ -257,11 +267,15 @@ export function MapLibreMap() {
       bumpStyleEpoch()
     })
     newMap.on('move', () => {
-      const c = newMap.getCenter()
-      setCenter([c.lng, c.lat])
-      setZoom(newMap.getZoom())
-      setPitch(newMap.getPitch())
-      setBearing(newMap.getBearing())
+      if (moveFrameRef.current) return
+      moveFrameRef.current = requestAnimationFrame(() => {
+        moveFrameRef.current = null
+        const c = newMap.getCenter()
+        setCenter([c.lng, c.lat])
+        setZoom(newMap.getZoom())
+        setPitch(newMap.getPitch())
+        setBearing(newMap.getBearing())
+      })
     })
     newMap.on('click', handleMapClick)
 
@@ -270,7 +284,11 @@ export function MapLibreMap() {
     newMap.addControl(new AttributionControl({ compact: true }), 'bottom-right')
     setMapInstance(newMap)
 
-    return () => { newMap.remove(); mapRef.current = null }
+    return () => {
+      if (moveFrameRef.current) cancelAnimationFrame(moveFrameRef.current)
+      newMap.remove()
+      mapRef.current = null
+    }
   }, [])
 
   useEffect(() => {
@@ -315,8 +333,14 @@ export function MapLibreMap() {
   useEffect(() => {
     if (activeTool === prevToolRef.current) return
     if (activeTool === 'route-ab') {
-      // Starting a fresh A-B route session: clear any previous markers/route
-      clearABMarkers()
+      // Starting a new A-B route session — previous route stays on map
+      if (markerARef.current) { markerARef.current.remove(); markerARef.current = null }
+      if (markerBRef.current) { markerBRef.current.remove(); markerBRef.current = null }
+      if (selectedMarkerARef.current) { selectedMarkerARef.current.remove(); selectedMarkerARef.current = null }
+      if (selectedMarkerBRef.current) { selectedMarkerBRef.current.remove(); selectedMarkerBRef.current = null }
+      pointARef.current = null
+      pointBRef.current = null
+      currentRouteIdRef.current = null
       setRoutePanel({ visible: true, pointA: null, pointB: null, calculating: false, errorMsg: null, profile: 'car' })
     } else {
       // Leaving route-ab: keep markers/route on map, just hide the panel
@@ -340,10 +364,51 @@ export function MapLibreMap() {
   }
 
   const confirmRouteAB = () => {
-    // Keep the route and the A/B markers (still draggable), just close the panel
+    // Hide creation markers — selection markers will show if route is selected
+    if (markerARef.current) { markerARef.current.remove(); markerARef.current = null }
+    if (markerBRef.current) { markerBRef.current.remove(); markerBRef.current = null }
+    pointARef.current = null
+    pointBRef.current = null
     setRoutePanel(prev => ({ ...prev, visible: false }))
     setActiveTool('select')
   }
+
+  // Show/hide A-B endpoint markers when a route-ab is selected/deselected
+  useEffect(() => {
+    if (!mapRef.current) return
+
+    // Clean up previous selection markers
+    if (selectedMarkerARef.current) { selectedMarkerARef.current.remove(); selectedMarkerARef.current = null }
+    if (selectedMarkerBRef.current) { selectedMarkerBRef.current.remove(); selectedMarkerBRef.current = null }
+
+    if (!selectedElementId || !selectedElementId.startsWith(ROUTE_AB_PREFIX)) return
+
+    const route = project?.routes.find((r) => r.id === selectedElementId)
+    if (!route || route.coordinates.length < 2) return
+
+    const aCoords = route.coordinates[0]
+    const bCoords = route.coordinates[route.coordinates.length - 1]
+
+    const createStaticMarker = (coords: Coordinates, label: 'A' | 'B') => {
+      const color = label === 'A' ? '#ea4335' : '#4285f4'
+      const el = document.createElement('div')
+      el.style.cssText = `
+        width: 28px; height: 28px; border-radius: 50%;
+        background: ${color};
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3); border: 3px solid white;
+        display: flex; align-items: center; justify-content: center;
+        color: white; font-weight: bold; font-size: 13px; font-family: Arial, sans-serif;
+        pointer-events: none;
+      `
+      el.textContent = label
+      return new Marker({ element: el, draggable: false })
+        .setLngLat(coords)
+        .addTo(mapRef.current!)
+    }
+
+    selectedMarkerARef.current = createStaticMarker(aCoords, 'A')
+    selectedMarkerBRef.current = createStaticMarker(bCoords, 'B')
+  }, [selectedElementId, project])
 
   const getCursorStyle = () => {
     switch (activeTool) {
@@ -479,6 +544,8 @@ export function MapLibreMap() {
           </div>
         </div>
       )}
+
+      <NodeOverlay />
 
       <ImageSourceModal
         open={imageModal.open}

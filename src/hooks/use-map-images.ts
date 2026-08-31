@@ -2,14 +2,15 @@ import { useEffect, useRef } from 'react'
 import { useProjectStore } from '@/stores/project-store'
 import { useEditorStore } from '@/stores/editor-store'
 import { getMaplibregl } from '@/lib/maplibre'
-
-function isLayerVisible(project: any, layerId: string): boolean {
-  if (!project) return false
-  const layer = project.layers.find((l: any) => l.id === layerId)
-  return layer ? layer.visible : true
-}
+import { isLayerVisible } from '@/lib/layer-utils'
 
 const imageCache = new Map<string, HTMLImageElement>()
+
+function clearImageCacheForUrls(activeUrls: Set<string>) {
+  for (const key of imageCache.keys()) {
+    if (!activeUrls.has(key)) imageCache.delete(key)
+  }
+}
 
 function ensureImage(url: string, cb: (img: HTMLImageElement) => void) {
   const cached = imageCache.get(url)
@@ -75,6 +76,10 @@ export function useMapImages(mapRef: React.RefObject<any>) {
         currentImages.delete(id)
       }
     })
+
+    // Evict cached images no longer referenced by any project image
+    const activeUrls = new Set(project.images.map((img) => img.url))
+    clearImageCacheForUrls(activeUrls)
 
     // Add or update images
     project.images.forEach((imageData) => {

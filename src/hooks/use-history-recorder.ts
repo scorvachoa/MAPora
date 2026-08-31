@@ -15,7 +15,10 @@ export function useHistoryRecorder() {
       if (state.project === prev.project) return
       if (applyingHistory) return
       if (timer) clearTimeout(timer)
-      timer = setTimeout(() => record('edit'), 300)
+      timer = setTimeout(() => {
+        // Re-check after debounce: undo/redo may have fired during the 300ms window
+        if (!applyingHistory) record('edit')
+      }, 300)
     })
 
     return () => {

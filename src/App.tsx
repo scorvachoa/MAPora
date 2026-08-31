@@ -6,6 +6,9 @@ import { PropertiesPanel } from '@/components/panels/PropertiesPanel'
 import { MapLibreMap } from '@/components/map/MapLibreMap'
 import { SearchBar } from '@/components/map/SearchBar'
 import { ExportModal } from '@/components/export/ExportModal'
+import { DuplicateProjectModal } from '@/components/modals/DuplicateProjectModal'
+import { VersionHistoryModal } from '@/components/modals/VersionHistoryModal'
+import { HelpModal } from '@/components/modals/HelpModal'
 import { NewProjectModal } from '@/components/projects/NewProjectModal'
 import { LandingPage } from '@/components/welcome/LandingPage'
 import { useUIStore } from '@/stores/ui-store'
@@ -142,6 +145,9 @@ function EditorApp() {
 
       <ExportModal />
       <NewProjectModal />
+      <DuplicateProjectModal />
+      <VersionHistoryModal />
+      <HelpModal />
     </div>
   )
 }

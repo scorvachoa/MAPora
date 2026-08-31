@@ -66,6 +66,23 @@ describe('HistoryStack (undo/redo contract)', () => {
     expect(h.current).toEqual({ v: 1 })
   })
 
+  it('evicts oldest entries when maxDepth is exceeded', () => {
+    const h = new HistoryStack<number>(0, 'init', 3)
+    h.push(1)
+    h.push(2)
+    h.push(3)
+    h.push(4) // should evict state 0, past = [1,2,3]
+    expect(h.current).toBe(4)
+    expect(h.depth).toBe(4) // 3 past + 1 present
+
+    // Undo all the way — should stop at 1 (state 0 was evicted)
+    expect(h.undo()).toBe(3)
+    expect(h.undo()).toBe(2)
+    expect(h.undo()).toBe(1)
+    expect(h.canUndo).toBe(false)
+    expect(h.undo()).toBe(null)
+  })
+
   // NOTE: callers (the Zustand store) must pass immutable snapshots. The store
   // already replaces state with new objects on every update, so no deep clone
   // is needed here.

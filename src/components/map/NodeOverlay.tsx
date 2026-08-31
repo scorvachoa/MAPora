@@ -1,0 +1,197 @@
+import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEditorStore } from '@/stores/editor-store'
+import { useProjectStore } from '@/stores/project-store'
+import { getMapInstance } from '@/lib/map-instance'
+import type { Coordinates } from '@/types/map'
+
+interface Node {
+  index: number
+  coord: Coordinates
+  x: number
+  y: number
+}
+
+export function NodeOverlay() {
+  const { selectedElementId, activeTool } = useEditorStore()
+  const { project, updateRoute, updateShape } = useProjectStore()
+  const [nodes, setNodes] = useState<Node[]>([])
+  const [isDragging, setIsDragging] = useState(false)
+  const draggingIndexRef = useRef<number | null>(null)
+  const offsetRef = useRef<{ dx: number; dy: number }>({ dx: 0, dy: 0 })
+  const coordsRef = useRef<Coordinates[]>([])
+  const dragFrameRef = useRef<number | null>(null)
+
+  const getData = useCallback((): { coords: Coordinates[]; type: 'route' | 'shape'; ringIdx?: number } | null => {
+    if (!selectedElementId || !project) return null
+
+    const route = project.routes.find((r) => r.id === selectedElementId)
+    if (route) return { coords: route.coordinates, type: 'route' }
+
+    const shape = project.shapes.find((s) => s.id === selectedElementId)
+    if (shape) {
+      return { coords: shape.coordinates[0] || [], type: 'shape', ringIdx: 0 }
+    }
+
+    return null
+  }, [selectedElementId, project])
+
+  const projectNodes = useCallback((coords: Coordinates[]) => {
+    const map = getMapInstance()
+    if (!map) return coords.map((c, i) => ({ index: i, coord: c, x: 0, y: 0 }))
+    return coords.map((c, i) => {
+      const p = map.project(c)
+      return { index: i, coord: c, x: p.x, y: p.y }
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!selectedElementId || activeTool !== 'select') {
+      setNodes([])
+      return
+    }
+
+    const data = getData()
+    if (!data || data.coords.length === 0) {
+      setNodes([])
+      return
+    }
+
+    coordsRef.current = [...data.coords]
+    setNodes(projectNodes(data.coords))
+
+    const map = getMapInstance()
+    if (!map) return
+
+    const refresh = () => {
+      if (draggingIndexRef.current !== null) return
+      const d = getData()
+      if (d) {
+        coordsRef.current = [...d.coords]
+        setNodes(projectNodes(d.coords))
+      }
+    }
+
+    map.on('move', refresh)
+    map.on('zoom', refresh)
+    map.on('resize', refresh)
+
+    return () => {
+      map.off('move', refresh)
+      map.off('zoom', refresh)
+      map.off('resize', refresh)
+    }
+  }, [selectedElementId, activeTool, getData, projectNodes])
+
+  useEffect(() => {
+    if (!isDragging) return
+
+    const map = getMapInstance()
+    if (!map) return
+    const container = map.getContainer()
+    const rect = container.getBoundingClientRect()
+
+    const handleWindowMouseMove = (e: MouseEvent) => {
+      if (draggingIndexRef.current === null) return
+      if (dragFrameRef.current) return
+
+      dragFrameRef.current = requestAnimationFrame(() => {
+        dragFrameRef.current = null
+        const idx = draggingIndexRef.current
+        if (idx === null) return
+
+        const containerX = e.clientX - rect.left
+        const containerY = e.clientY - rect.top
+        const lngLat = map.unproject([containerX - offsetRef.current.dx, containerY - offsetRef.current.dy])
+        const newCoord: Coordinates = [lngLat.lng, lngLat.lat]
+
+        const newCoords = [...coordsRef.current]
+        newCoords[idx] = newCoord
+        coordsRef.current = newCoords
+
+        const data = getData()
+        if (data) {
+          if (data.type === 'route') {
+            const route = project?.routes.find((r) => r.id === selectedElementId)
+            if (route) updateRoute(route.id, { coordinates: newCoords })
+          } else if (data.type === 'shape' && data.ringIdx !== undefined) {
+            const shape = project?.shapes.find((s) => s.id === selectedElementId)
+            if (shape) {
+              const newCoordinates = [...shape.coordinates]
+              newCoordinates[data.ringIdx] = newCoords
+              updateShape(shape.id, { coordinates: newCoordinates as any })
+            }
+          }
+        }
+
+        const point = map.project(newCoord)
+        setNodes((prev) =>
+          prev.map((n) => (n.index === idx ? { ...n, x: point.x, y: point.y, coord: newCoord } : n))
+        )
+      })
+    }
+
+    const handleWindowMouseUp = () => {
+      if (dragFrameRef.current) {
+        cancelAnimationFrame(dragFrameRef.current)
+        dragFrameRef.current = null
+      }
+      draggingIndexRef.current = null
+      setIsDragging(false)
+      setNodes((prev) => [...prev])
+    }
+
+    window.addEventListener('mousemove', handleWindowMouseMove)
+    window.addEventListener('mouseup', handleWindowMouseUp)
+
+    return () => {
+      window.removeEventListener('mousemove', handleWindowMouseMove)
+      window.removeEventListener('mouseup', handleWindowMouseUp)
+    }
+  }, [isDragging, getData, selectedElementId, project, updateRoute, updateShape])
+
+  const handleNodeMouseDown = useCallback((e: React.MouseEvent, index: number) => {
+    e.stopPropagation()
+    e.preventDefault()
+    const node = nodes[index]
+    if (!node) return
+    const map = getMapInstance()
+    if (!map) return
+    const rect = map.getContainer().getBoundingClientRect()
+    const containerX = e.clientX - rect.left
+    const containerY = e.clientY - rect.top
+    offsetRef.current = { dx: containerX - node.x, dy: containerY - node.y }
+    draggingIndexRef.current = index
+    setIsDragging(true)
+    setNodes((prev) => [...prev])
+  }, [nodes])
+
+  if (nodes.length === 0 || activeTool !== 'select') return null
+
+  return (
+    <div className="absolute inset-0 z-20 pointer-events-none">
+      {nodes.map((node) => (
+        <div
+          key={node.index}
+          className="absolute pointer-events-auto"
+          style={{
+            left: node.x,
+            top: node.y,
+            transform: 'translate(-50%, -50%)',
+          }}
+        >
+          <div
+            onMouseDown={(e) => handleNodeMouseDown(e, node.index)}
+            className={`w-3 h-3 rounded-full border-2 border-white shadow-md cursor-grab active:cursor-grabbing transition-colors ${
+              draggingIndexRef.current === node.index
+                ? 'bg-blue-500 scale-125'
+                : node.index === 0
+                ? 'bg-emerald-500 hover:bg-emerald-400'
+                : 'bg-blue-500 hover:bg-blue-400'
+            }`}
+            title={node.index === 0 ? 'Punto inicial' : `Punto ${node.index + 1}`}
+          />
+        </div>
+      ))}
+    </div>
+  )
+}

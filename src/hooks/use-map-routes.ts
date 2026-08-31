@@ -2,12 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useProjectStore } from '@/stores/project-store'
 import { useEditorStore } from '@/stores/editor-store'
 import { useMapStore } from '@/stores/map-store'
-
-function isLayerVisible(project: any, layerId: string): boolean {
-  if (!project) return false
-  const layer = project.layers.find((l: any) => l.id === layerId)
-  return layer ? layer.visible : true
-}
+import { isLayerVisible } from '@/lib/layer-utils'
 
 function getLineDashArray(style?: string): number[] | null {
   if (style === 'dashed') return [2, 2]
@@ -15,8 +10,15 @@ function getLineDashArray(style?: string): number[] | null {
   return null
 }
 
+interface RouteHandlers {
+  click: () => void
+  mouseenter: () => void
+  mouseleave: () => void
+}
+
 export function useMapRoutes(mapRef: React.RefObject<any>) {
   const routesRef = useRef<Map<string, any>>(new Map())
+  const handlersRef = useRef<Map<string, RouteHandlers>>(new Map())
   const { project } = useProjectStore()
   const { selectedElementId, setSelectedElement } = useEditorStore()
   const styleEpoch = useMapStore((s) => s.styleEpoch)
@@ -26,30 +28,43 @@ export function useMapRoutes(mapRef: React.RefObject<any>) {
 
     const map = mapRef.current
     const currentRoutes = routesRef.current
+    const handlers = handlersRef.current
 
     // Remove routes that no longer exist
-    currentRoutes.forEach((routeLayer, id) => {
+    currentRoutes.forEach((_, id) => {
       if (!project.routes.find((r) => r.id === id)) {
-        if (map.getLayer(`route-${id}`)) {
-          map.removeLayer(`route-${id}`)
+        const sourceId = `route-${id}`
+        // Clean up event listeners before removing layer
+        const h = handlers.get(id)
+        if (h) {
+          if (map.getLayer(sourceId)) {
+            map.off('click', sourceId, h.click)
+            map.off('mouseenter', sourceId, h.mouseenter)
+            map.off('mouseleave', sourceId, h.mouseleave)
+          }
+          handlers.delete(id)
         }
-        if (map.getSource(`route-${id}`)) {
-          map.removeSource(`route-${id}`)
-        }
+        if (map.getLayer(sourceId)) map.removeLayer(sourceId)
+        if (map.getSource(sourceId)) map.removeSource(sourceId)
         currentRoutes.delete(id)
       }
     })
 
     // Add or update routes
     project.routes.forEach((routeData) => {
-      // Hide if element is not visible OR its layer is not visible
       if (!routeData.visible || !isLayerVisible(project, routeData.layerId)) {
-        if (map.getLayer(`route-${routeData.id}`)) {
-          map.removeLayer(`route-${routeData.id}`)
+        const sourceId = `route-${routeData.id}`
+        const h = handlers.get(routeData.id)
+        if (h) {
+          if (map.getLayer(sourceId)) {
+            map.off('click', sourceId, h.click)
+            map.off('mouseenter', sourceId, h.mouseenter)
+            map.off('mouseleave', sourceId, h.mouseleave)
+          }
+          handlers.delete(routeData.id)
         }
-        if (map.getSource(`route-${routeData.id}`)) {
-          map.removeSource(`route-${routeData.id}`)
-        }
+        if (map.getLayer(sourceId)) map.removeLayer(sourceId)
+        if (map.getSource(sourceId)) map.removeSource(sourceId)
         currentRoutes.delete(routeData.id)
         return
       }
@@ -73,10 +88,7 @@ export function useMapRoutes(mapRef: React.RefObject<any>) {
           data: {
             type: 'Feature',
             properties: {},
-            geometry: {
-              type: 'LineString',
-              coordinates: routeData.coordinates,
-            },
+            geometry: { type: 'LineString', coordinates: routeData.coordinates },
           },
         })
 
@@ -84,41 +96,32 @@ export function useMapRoutes(mapRef: React.RefObject<any>) {
           id: sourceId,
           type: 'line',
           source: sourceId,
-          layout: {
-            'line-join': 'round',
-            'line-cap': 'round',
-          },
+          layout: { 'line-join': 'round', 'line-cap': 'round' },
           paint,
         })
 
-        map.on('click', sourceId, () => {
-          setSelectedElement(routeData.id)
-        })
+        const clickHandler = () => { setSelectedElement(routeData.id) }
+        const enterHandler = () => { map.getCanvas().style.cursor = 'pointer' }
+        const leaveHandler = () => { map.getCanvas().style.cursor = '' }
 
-        map.on('mouseenter', sourceId, () => {
-          map.getCanvas().style.cursor = 'pointer'
-        })
+        map.on('click', sourceId, clickHandler)
+        map.on('mouseenter', sourceId, enterHandler)
+        map.on('mouseleave', sourceId, leaveHandler)
 
-        map.on('mouseleave', sourceId, () => {
-          map.getCanvas().style.cursor = ''
-        })
-
+        handlers.set(routeData.id, { click: clickHandler, mouseenter: enterHandler, mouseleave: leaveHandler })
         currentRoutes.set(routeData.id, true)
       } else {
-        const geojson = {
+        source.setData({
           type: 'Feature',
           properties: {},
-          geometry: {
-            type: 'LineString',
-            coordinates: routeData.coordinates,
-          },
-        }
-        source.setData(geojson)
+          geometry: { type: 'LineString', coordinates: routeData.coordinates },
+        })
 
         map.setPaintProperty(sourceId, 'line-color', routeData.color)
         map.setPaintProperty(sourceId, 'line-width', routeData.width)
         map.setPaintProperty(sourceId, 'line-opacity', routeData.opacity)
-        map.setPaintProperty(sourceId, 'line-dasharray', getLineDashArray(routeData.style))
+        const dashArray = getLineDashArray(routeData.style)
+        map.setPaintProperty(sourceId, 'line-dasharray', dashArray === null ? undefined : dashArray)
       }
     })
   }, [project?.routes, project?.layers, mapRef, setSelectedElement, styleEpoch])
@@ -131,11 +134,7 @@ export function useMapRoutes(mapRef: React.RefObject<any>) {
       const sourceId = `route-${routeData.id}`
       if (map.getLayer(sourceId)) {
         const isSelected = routeData.id === selectedElementId
-        if (isSelected) {
-          map.setPaintProperty(sourceId, 'line-width', routeData.width + 2)
-        } else {
-          map.setPaintProperty(sourceId, 'line-width', routeData.width)
-        }
+        map.setPaintProperty(sourceId, 'line-width', isSelected ? routeData.width + 2 : routeData.width)
       }
     })
   }, [selectedElementId, project?.routes, mapRef])

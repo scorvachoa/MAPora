@@ -11,8 +11,10 @@ export class HistoryStack<T> {
   private past: HistorySnapshot<T>[] = []
   private present: HistorySnapshot<T> | null = null
   private future: HistorySnapshot<T>[] = []
+  private maxDepth: number
 
-  constructor(initial?: T, label = 'init') {
+  constructor(initial?: T, label = 'init', maxDepth = 100) {
+    this.maxDepth = maxDepth
     if (initial !== undefined) this.present = { label, state: initial }
   }
 
@@ -34,6 +36,9 @@ export class HistoryStack<T> {
 
   push(state: T, label = 'change'): void {
     if (this.present) this.past.push(this.present)
+    if (this.past.length > this.maxDepth) {
+      this.past.splice(0, this.past.length - this.maxDepth)
+    }
     this.present = { label, state }
     this.future = []
   }

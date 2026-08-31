@@ -150,6 +150,7 @@ export function Sidebar({ isOpen }: SidebarProps) {
 
   const deleteElement = (el: LayerChild) => {
     removeFns[el.type](el.id)
+    if (selectedElementId === el.id) setSelectedElement(null)
   }
 
   const isLayerExpanded = (layerId: string) => expanded[layerId] !== false
@@ -195,7 +196,19 @@ export function Sidebar({ isOpen }: SidebarProps) {
 
   const confirmDeleteLayer = () => {
     if (deleteConfirm.layerId) {
+      // Deselect if the selected element belongs to this layer
+      if (selectedElementId) {
+        const el = project?.markers.find((m) => m.id === selectedElementId)
+          || project?.routes.find((r) => r.id === selectedElementId)
+          || project?.texts.find((t) => t.id === selectedElementId)
+          || project?.shapes.find((s) => s.id === selectedElementId)
+          || project?.images.find((i) => i.id === selectedElementId)
+        if (el && el.layerId === deleteConfirm.layerId) setSelectedElement(null)
+      }
       removeLayer(deleteConfirm.layerId)
+      if (activeLayerId === deleteConfirm.layerId) {
+        setActiveLayer(project?.layers[0]?.id || 'layer-default')
+      }
     }
     setDeleteConfirm({ show: false, layerId: null, layerName: '' })
   }

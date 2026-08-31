@@ -2,12 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useProjectStore } from '@/stores/project-store'
 import { useEditorStore } from '@/stores/editor-store'
 import { getMaplibregl } from '@/lib/maplibre'
-
-function isLayerVisible(project: any, layerId: string): boolean {
-  if (!project) return false
-  const layer = project.layers.find((l: any) => l.id === layerId)
-  return layer ? layer.visible : true
-}
+import { isLayerVisible } from '@/lib/layer-utils'
 
 export function useMapTexts(mapRef: React.RefObject<any>) {
   const textsRef = useRef<Map<string, any>>(new Map())

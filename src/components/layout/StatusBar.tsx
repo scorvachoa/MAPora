@@ -25,7 +25,7 @@ export function StatusBar() {
       <div className="flex items-center gap-1.5" title="Coordenadas del centro">
         <Crosshair className="h-3.5 w-3.5 text-slate-400" />
         <span className="font-mono text-[11px] text-slate-600 tabular-nums">
-          {lat.toFixed(4)}, {lng.toFixed(4)}
+          {lng.toFixed(4)}, {lat.toFixed(4)}
         </span>
       </div>
 

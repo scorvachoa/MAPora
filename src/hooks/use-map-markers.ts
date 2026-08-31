@@ -3,6 +3,7 @@ import { useProjectStore } from '@/stores/project-store'
 import { useEditorStore } from '@/stores/editor-store'
 import { getMaplibregl } from '@/lib/maplibre'
 import { MARKER_ICONS } from '@/constants/marker-icons'
+import { isLayerVisible } from '@/lib/layer-utils'
 
 function getMarkerIconSvg(iconId: string): string {
   const found = MARKER_ICONS.find((i) => i.id === iconId)
@@ -23,12 +24,6 @@ function createMarkerElement(iconId: string, color: string, size: number): HTMLD
     `<svg width="${size}" height="${size}" style="color: ${color}; display: block; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));" `
   )
   return el
-}
-
-function isLayerVisible(project: any, layerId: string): boolean {
-  if (!project) return false
-  const layer = project.layers.find((l: any) => l.id === layerId)
-  return layer ? layer.visible : true
 }
 
 export function useMapMarkers(mapRef: React.RefObject<any>) {

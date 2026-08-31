@@ -2,15 +2,17 @@ import { useEffect, useRef } from 'react'
 import { useProjectStore } from '@/stores/project-store'
 import { useEditorStore } from '@/stores/editor-store'
 import { useMapStore } from '@/stores/map-store'
+import { isLayerVisible } from '@/lib/layer-utils'
 
-function isLayerVisible(project: any, layerId: string): boolean {
-  if (!project) return false
-  const layer = project.layers.find((l: any) => l.id === layerId)
-  return layer ? layer.visible : true
+interface ShapeHandlers {
+  click: () => void
+  mouseenter: () => void
+  mouseleave: () => void
 }
 
 export function useMapShapes(mapRef: React.RefObject<any>) {
   const shapesRef = useRef<Map<string, boolean>>(new Map())
+  const handlersRef = useRef<Map<string, ShapeHandlers>>(new Map())
   const { project } = useProjectStore()
   const { setSelectedElement } = useEditorStore()
   const styleEpoch = useMapStore((s) => s.styleEpoch)
@@ -20,36 +22,44 @@ export function useMapShapes(mapRef: React.RefObject<any>) {
 
     const map = mapRef.current
     const currentShapes = shapesRef.current
+    const handlers = handlersRef.current
 
     // Remove shapes that no longer exist
     currentShapes.forEach((_, id) => {
       if (!project.shapes.find((s) => s.id === id)) {
-        if (map.getLayer(`shape-fill-${id}`)) {
-          map.removeLayer(`shape-fill-${id}`)
+        const clickLayerId = `shape-border-${id}`
+        const h = handlers.get(id)
+        if (h) {
+          if (map.getLayer(clickLayerId)) {
+            map.off('click', clickLayerId, h.click)
+            map.off('mouseenter', clickLayerId, h.mouseenter)
+            map.off('mouseleave', clickLayerId, h.mouseleave)
+          }
+          handlers.delete(id)
         }
-        if (map.getLayer(`shape-border-${id}`)) {
-          map.removeLayer(`shape-border-${id}`)
-        }
-        if (map.getSource(`shape-${id}`)) {
-          map.removeSource(`shape-${id}`)
-        }
+        if (map.getLayer(`shape-fill-${id}`)) map.removeLayer(`shape-fill-${id}`)
+        if (map.getLayer(clickLayerId)) map.removeLayer(clickLayerId)
+        if (map.getSource(`shape-${id}`)) map.removeSource(`shape-${id}`)
         currentShapes.delete(id)
       }
     })
 
     // Add or update shapes
     project.shapes.forEach((shapeData) => {
-      // Hide if element is not visible OR its layer is not visible
       if (!shapeData.visible || !isLayerVisible(project, shapeData.layerId)) {
-        if (map.getLayer(`shape-fill-${shapeData.id}`)) {
-          map.removeLayer(`shape-fill-${shapeData.id}`)
+        const clickLayerId = `shape-border-${shapeData.id}`
+        const h = handlers.get(shapeData.id)
+        if (h) {
+          if (map.getLayer(clickLayerId)) {
+            map.off('click', clickLayerId, h.click)
+            map.off('mouseenter', clickLayerId, h.mouseenter)
+            map.off('mouseleave', clickLayerId, h.mouseleave)
+          }
+          handlers.delete(shapeData.id)
         }
-        if (map.getLayer(`shape-border-${shapeData.id}`)) {
-          map.removeLayer(`shape-border-${shapeData.id}`)
-        }
-        if (map.getSource(`shape-${shapeData.id}`)) {
-          map.removeSource(`shape-${shapeData.id}`)
-        }
+        if (map.getLayer(`shape-fill-${shapeData.id}`)) map.removeLayer(`shape-fill-${shapeData.id}`)
+        if (map.getLayer(clickLayerId)) map.removeLayer(clickLayerId)
+        if (map.getSource(`shape-${shapeData.id}`)) map.removeSource(`shape-${shapeData.id}`)
         currentShapes.delete(shapeData.id)
         return
       }
@@ -68,20 +78,14 @@ export function useMapShapes(mapRef: React.RefObject<any>) {
       }
 
       if (!source) {
-        map.addSource(sourceId, {
-          type: 'geojson',
-          data: geojson,
-        })
+        map.addSource(sourceId, { type: 'geojson', data: geojson })
 
         if (shapeData.type === 'polygon') {
           map.addLayer({
             id: `shape-fill-${shapeData.id}`,
             type: 'fill',
             source: sourceId,
-            paint: {
-              'fill-color': shapeData.fillColor,
-              'fill-opacity': shapeData.fillOpacity,
-            },
+            paint: { 'fill-color': shapeData.fillColor, 'fill-opacity': shapeData.fillOpacity },
           })
         }
 
@@ -89,25 +93,19 @@ export function useMapShapes(mapRef: React.RefObject<any>) {
           id: `shape-border-${shapeData.id}`,
           type: 'line',
           source: sourceId,
-          paint: {
-            'line-color': shapeData.borderColor,
-            'line-width': shapeData.borderWidth,
-          },
+          paint: { 'line-color': shapeData.borderColor, 'line-width': shapeData.borderWidth },
         })
 
-        const clickSourceId = `shape-border-${shapeData.id}`
-        map.on('click', clickSourceId, () => {
-          setSelectedElement(shapeData.id)
-        })
+        const clickLayerId = `shape-border-${shapeData.id}`
+        const clickHandler = () => { setSelectedElement(shapeData.id) }
+        const enterHandler = () => { map.getCanvas().style.cursor = 'pointer' }
+        const leaveHandler = () => { map.getCanvas().style.cursor = '' }
 
-        map.on('mouseenter', clickSourceId, () => {
-          map.getCanvas().style.cursor = 'pointer'
-        })
+        map.on('click', clickLayerId, clickHandler)
+        map.on('mouseenter', clickLayerId, enterHandler)
+        map.on('mouseleave', clickLayerId, leaveHandler)
 
-        map.on('mouseleave', clickSourceId, () => {
-          map.getCanvas().style.cursor = ''
-        })
-
+        handlers.set(shapeData.id, { click: clickHandler, mouseenter: enterHandler, mouseleave: leaveHandler })
         currentShapes.set(shapeData.id, true)
       } else {
         source.setData(geojson)

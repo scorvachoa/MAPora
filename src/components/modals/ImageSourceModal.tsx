@@ -1,4 +1,5 @@
 import { useRef, useState, type ChangeEvent } from 'react'
+import { useModalAccessibility } from '@/hooks/use-modal-accessibility'
 
 interface ImageSourceModalProps {
   open: boolean
@@ -12,6 +13,7 @@ export function ImageSourceModal({ open, mode, onLocalFile, onUrl, onClose }: Im
   const [url, setUrl] = useState('')
   const [urlError, setUrlError] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const dialogRef = useModalAccessibility(open, onClose)
 
   if (!open) return null
 
@@ -35,10 +37,15 @@ export function ImageSourceModal({ open, mode, onLocalFile, onUrl, onClose }: Im
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl shadow-xl w-[400px] max-w-[90vw] p-6"
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="image-modal-title"
+        tabIndex={-1}
+        className="bg-white rounded-2xl shadow-xl w-[400px] max-w-[90vw] p-6 outline-none"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-lg font-semibold text-gray-800 mb-1">
+        <h2 id="image-modal-title" className="text-lg font-semibold text-gray-800 mb-1">
           {mode === 'edit' ? 'Cambiar imagen' : 'Añadir imagen'}
         </h2>
         <p className="text-sm text-gray-500 mb-5">Elige una fuente para la imagen.</p>

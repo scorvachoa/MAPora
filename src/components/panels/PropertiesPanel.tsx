@@ -1,6 +1,5 @@
 import { useRef, type MouseEvent as ReactMouseEvent } from 'react'
 import { X, MapPin, Route, Type, Pentagon, Trash2, Image } from 'lucide-react'
-import { Input } from '@/components/ui/input'
 import { useProjectStore } from '@/stores/project-store'
 import { useEditorStore } from '@/stores/editor-store'
 import { MARKER_ICONS, MARKER_COLORS } from '@/constants/marker-icons'
@@ -136,62 +135,65 @@ export function PropertiesPanel({ isOpen }: PropertiesPanelProps) {
   }
 
   return (
-    <aside className="w-80 bg-white border-l border-gray-200 flex flex-col shrink-0 shadow-sm">
-      <div className="flex items-center justify-between p-3 border-b border-gray-200 bg-gray-50">
-        <div className="flex items-center gap-2">
-          {getIcon()}
-          <span className="font-medium text-gray-700">{getName()}</span>
+    <aside className="w-80 bg-white border-l border-slate-200 flex flex-col shrink-0 shadow-sm">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
+            {getIcon()}
+          </div>
+          <span className="font-semibold text-slate-800 text-sm">{getName()}</span>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5">
           <button
             onClick={handleDelete}
-            className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors"
+            className="p-2 hover:bg-red-50 rounded-xl transition-colors group"
             title="Eliminar"
           >
-            <Trash2 className="h-4 w-4 text-gray-500" />
+            <Trash2 className="h-4 w-4 text-slate-400 group-hover:text-red-500" />
           </button>
           <button
             onClick={() => setSelectedElement(null)}
-            className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors"
+            className="p-2 hover:bg-slate-100 rounded-xl transition-colors"
           >
-            <X className="h-4 w-4 text-gray-500" />
+            <X className="h-4 w-4 text-slate-400" />
           </button>
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto">
+      {/* Content */}
+      <div className="flex-1 overflow-auto p-4 space-y-5">
+        {/* ── Marker ── */}
         {marker && (
-          <div className="p-4 space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Nombre</label>
-              <Input
-                value={marker.name}
-                onChange={(e) => updateMarker(marker.id, { name: e.target.value })}
-                placeholder="Nombre del punto"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Descripción</label>
-              <textarea
-                value={marker.description || ''}
-                onChange={(e) => updateMarker(marker.id, { description: e.target.value })}
-                placeholder="Añadir descripción..."
-                className="w-full h-20 px-3 py-2 text-sm border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
+          <>
+            <Section title="Información">
+              <Field label="Nombre">
+                <InputVal
+                  value={marker.name}
+                  onChange={(v) => updateMarker(marker.id, { name: v })}
+                  placeholder="Nombre del punto"
+                />
+              </Field>
+              <Field label="Descripción">
+                <textarea
+                  value={marker.description || ''}
+                  onChange={(e) => updateMarker(marker.id, { description: e.target.value })}
+                  placeholder="Añadir descripción..."
+                  className="w-full h-20 px-3 py-2 text-sm border border-slate-200 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all placeholder:text-slate-300"
+                />
+              </Field>
+            </Section>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-2">Ícono</label>
+            <Section title="Ícono">
               <div className="grid grid-cols-6 gap-1.5">
                 {MARKER_ICONS.map((icon) => (
                   <button
                     key={icon.id}
                     onClick={() => updateMarker(marker.id, { icon: icon.id })}
-                    className={`p-2 rounded-lg border-2 transition-all flex items-center justify-center ${
-                      marker.icon === icon.id 
-                        ? 'border-blue-500 bg-blue-50' 
-                        : 'border-gray-100 hover:border-gray-300 hover:bg-gray-50'
+                    className={`p-2 rounded-xl border-2 transition-all flex items-center justify-center ${
+                      marker.icon === icon.id
+                        ? 'border-blue-500 bg-blue-50 shadow-sm'
+                        : 'border-slate-100 hover:border-slate-300 hover:bg-slate-50'
                     }`}
                     title={icon.name}
                   >
@@ -207,61 +209,62 @@ export function PropertiesPanel({ isOpen }: PropertiesPanelProps) {
                   </button>
                 ))}
               </div>
-            </div>
+            </Section>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-2">Color</label>
-              <div className="flex flex-wrap gap-1.5">
+            <Section title="Color">
+              <div className="flex flex-wrap gap-2">
                 {MARKER_COLORS.map((color) => (
                   <button
                     key={color}
                     onClick={() => updateMarker(marker.id, { color })}
-                    className={`w-7 h-7 rounded-full border-2 transition-all ${
-                      marker.color === color 
-                        ? 'border-gray-800 scale-110' 
-                        : 'border-transparent hover:scale-110'
+                    className={`w-8 h-8 rounded-full border-[3px] transition-all shadow-sm ${
+                      marker.color === color
+                        ? 'border-slate-800 scale-110 shadow-md'
+                        : 'border-white hover:scale-110 hover:shadow-md'
                     }`}
                     style={{ backgroundColor: color }}
                     title={color}
                   />
                 ))}
-                <input
-                  type="color"
-                  value={marker.color}
-                  onChange={(e) => updateMarker(marker.id, { color: e.target.value })}
-                  className="w-7 h-7 rounded-full border-2 border-gray-200 cursor-pointer"
-                  title="Color personalizado"
-                />
+                <label className="w-8 h-8 rounded-full border-[3px] border-dashed border-slate-300 cursor-pointer flex items-center justify-center hover:border-blue-400 transition-colors overflow-hidden relative">
+                  <input
+                    type="color"
+                    value={marker.color}
+                    onChange={(e) => updateMarker(marker.id, { color: e.target.value })}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                  <span className="text-[10px] text-slate-400 font-medium">+</span>
+                </label>
               </div>
-            </div>
+            </Section>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Tamaño: {marker.size}px</label>
+            <Section title={`Tamaño · ${marker.size}px`}>
               <input
                 type="range"
                 min={16}
                 max={64}
                 value={marker.size}
                 onChange={(e) => updateMarker(marker.id, { size: Number(e.target.value) })}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                className="w-full accent-blue-500"
               />
-            </div>
-          </div>
+            </Section>
+          </>
         )}
 
+        {/* ── Route ── */}
         {route && (
-          <div className="p-4 space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Nombre</label>
-              <Input
-                value={route.name}
-                onChange={(e) => updateRoute(route.id, { name: e.target.value })}
-                placeholder="Nombre de la ruta"
-              />
-            </div>
+          <>
+            <Section title="Información">
+              <Field label="Nombre">
+                <InputVal
+                  value={route.name}
+                  onChange={(v) => updateRoute(route.id, { name: v })}
+                  placeholder="Nombre de la ruta"
+                />
+              </Field>
+            </Section>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-2">Tipo de transporte</label>
+            <Section title="Transporte">
               <div className="grid grid-cols-3 gap-1.5">
                 {([
                   { id: 'car' as RouteProfile, icon: '🚗', label: 'Auto' },
@@ -271,10 +274,10 @@ export function PropertiesPanel({ isOpen }: PropertiesPanelProps) {
                   <button
                     key={mode.id}
                     onClick={() => handleRouteProfileChange(mode.id)}
-                    className={`flex flex-col items-center gap-0.5 p-2 rounded-lg border-2 transition-all text-xs ${
+                    className={`flex flex-col items-center gap-0.5 p-2.5 rounded-xl border-2 transition-all text-xs ${
                       route.profile === mode.id
-                        ? 'border-blue-500 bg-blue-50 text-blue-700'
-                        : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                        ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
+                        : 'border-slate-100 hover:border-slate-300 text-slate-600'
                     }`}
                   >
                     <span className="text-lg">{mode.icon}</span>
@@ -282,140 +285,91 @@ export function PropertiesPanel({ isOpen }: PropertiesPanelProps) {
                   </button>
                 ))}
               </div>
-            </div>
+            </Section>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-2">Color</label>
+            <Section title="Color">
               <div className="flex items-center gap-3">
+                <label className="relative w-10 h-10 rounded-full overflow-hidden cursor-pointer border-[3px] border-white shadow-md hover:shadow-lg transition-shadow">
+                  <input
+                    type="color"
+                    value={route.color}
+                    onChange={(e) => updateRoute(route.id, { color: e.target.value })}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                  <div className="w-full h-full rounded-full border border-slate-200" style={{ backgroundColor: route.color }} />
+                </label>
                 <input
-                  type="color"
+                  type="text"
                   value={route.color}
                   onChange={(e) => updateRoute(route.id, { color: e.target.value })}
-                  className="w-10 h-10 rounded-lg border-2 border-gray-200 cursor-pointer"
-                />
-                <Input
-                  value={route.color}
-                  onChange={(e) => updateRoute(route.id, { color: e.target.value })}
-                  className="flex-1"
+                  className="flex-1 px-3 py-2 text-sm font-mono border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
                 />
               </div>
-            </div>
+            </Section>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-2">Estilo de línea</label>
+            <Section title="Estilo">
               <div className="grid grid-cols-3 gap-1.5">
                 {([
-                  { id: 'solid', label: 'Sólida' },
-                  { id: 'dashed', label: 'Discontinua' },
-                  { id: 'dotted', label: 'Punteada' },
+                  { id: 'solid', label: 'Sólida', icon: '━━━' },
+                  { id: 'dashed', label: 'Discontinua', icon: '╌╌╌' },
+                  { id: 'dotted', label: 'Punteada', icon: '·····' },
                 ] as const).map((s) => (
                   <button
                     key={s.id}
                     onClick={() => updateRoute(route.id, { style: s.id })}
-                    className={`px-2 py-2 rounded-lg border-2 text-xs transition-all ${
+                    className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border-2 text-xs transition-all ${
                       route.style === s.id
-                        ? 'border-blue-500 bg-blue-50 text-blue-700'
-                        : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                        ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
+                        : 'border-slate-100 hover:border-slate-300 text-slate-600'
                     }`}
                   >
-                    {s.label}
+                    <span className="text-[10px] tracking-widest opacity-60">{s.icon}</span>
+                    <span className="font-medium">{s.label}</span>
                   </button>
                 ))}
               </div>
-            </div>
+            </Section>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Grosor: {route.width}px</label>
-              <input
-                type="range"
-                min={1}
-                max={20}
-                value={route.width}
-                onChange={(e) => updateRoute(route.id, { width: Number(e.target.value) })}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-              />
-            </div>
+            <Section title={`Grosor · ${route.width}px`}>
+              <input type="range" min={1} max={20} value={route.width} onChange={(e) => updateRoute(route.id, { width: Number(e.target.value) })} className="w-full accent-blue-500" />
+            </Section>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Opacidad</label>
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.1}
-                value={route.opacity}
-                onChange={(e) => updateRoute(route.id, { opacity: Number(e.target.value) })}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-              />
-            </div>
+            <Section title={`Opacidad · ${Math.round(route.opacity * 100)}%`}>
+              <input type="range" min={0} max={1} step={0.1} value={route.opacity} onChange={(e) => updateRoute(route.id, { opacity: Number(e.target.value) })} className="w-full accent-blue-500" />
+            </Section>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Información</label>
-              <p className="text-sm text-gray-500">{route.coordinates.length} puntos</p>
-              {route.distance && (
-                <p className="text-sm text-gray-500">
-                  Distancia: {(route.distance / 1000).toFixed(2)} km
-                </p>
-              )}
-              {route.duration && (
-                <p className="text-sm text-gray-500">
-                  Duración: {Math.round(route.duration / 60)} min
-                </p>
-              )}
+            <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 space-y-1">
+              <p className="text-xs font-medium text-slate-500">Datos de ruta</p>
+              <p className="text-sm text-slate-700">{route.coordinates.length} puntos</p>
+              {route.distance != null && <p className="text-sm text-slate-700">{(route.distance / 1000).toFixed(2)} km</p>}
+              {route.duration != null && <p className="text-sm text-slate-700">{Math.round(route.duration / 60)} min</p>}
             </div>
-          </div>
+          </>
         )}
 
+        {/* ── Text ── */}
         {text && (
-          <div className="p-4 space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Contenido</label>
+          <>
+            <Section title="Contenido">
               <textarea
                 value={text.content}
                 onChange={(e) => updateText(text.id, { content: e.target.value })}
-                placeholder="Texto (Enter para nueva línea)"
+                placeholder="Escribe tu texto..."
                 rows={3}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all placeholder:text-slate-300"
               />
-            </div>
+            </Section>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Tamaño: {text.fontSize}px</label>
-              <input
-                type="range"
-                min={8}
-                max={72}
-                value={text.fontSize}
-                onChange={(e) => updateText(text.id, { fontSize: Number(e.target.value) })}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Peso</label>
-              <select
-                value={text.fontWeight}
-                onChange={(e) => updateText(text.id, { fontWeight: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="normal">Normal</option>
-                <option value="bold">Negrita</option>
-                <option value="300">Fino</option>
-                <option value="600">Semi-negrita</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-2">Tipografía</label>
+            <Section title="Tipografía">
               <div className="grid grid-cols-2 gap-1.5">
                 {FONT_OPTIONS.map((font) => (
                   <button
                     key={font.value}
                     onClick={() => updateText(text.id, { fontFamily: font.value })}
-                    className={`px-2 py-2 rounded-lg border-2 text-xs transition-all ${
+                    className={`px-2 py-2 rounded-xl border-2 text-xs transition-all ${
                       text.fontFamily === font.value
-                        ? 'border-blue-500 bg-blue-50 text-blue-700'
-                        : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                        ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
+                        : 'border-slate-100 hover:border-slate-300 text-slate-600'
                     }`}
                     style={{ fontFamily: font.value }}
                   >
@@ -423,276 +377,205 @@ export function PropertiesPanel({ isOpen }: PropertiesPanelProps) {
                   </button>
                 ))}
               </div>
-            </div>
+            </Section>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-2">Color</label>
+            <Section title="Peso">
+              <div className="grid grid-cols-2 gap-1.5">
+                {[
+                  { value: 'normal', label: 'Normal' },
+                  { value: 'bold', label: 'Negrita' },
+                  { value: '300', label: 'Fino' },
+                  { value: '600', label: 'Semi' },
+                ].map((w) => (
+                  <button
+                    key={w.value}
+                    onClick={() => updateText(text.id, { fontWeight: w.value })}
+                    className={`px-2 py-2 rounded-xl border-2 text-xs font-medium transition-all ${
+                      text.fontWeight === w.value
+                        ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
+                        : 'border-slate-100 hover:border-slate-300 text-slate-600'
+                    }`}
+                  >
+                    {w.label}
+                  </button>
+                ))}
+              </div>
+            </Section>
+
+            <Section title="Color">
               <div className="flex items-center gap-3">
+                <label className="relative w-10 h-10 rounded-full overflow-hidden cursor-pointer border-[3px] border-white shadow-md hover:shadow-lg transition-shadow">
+                  <input type="color" value={text.color} onChange={(e) => updateText(text.id, { color: e.target.value })} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                  <div className="w-full h-full rounded-full border border-slate-200" style={{ backgroundColor: text.color }} />
+                </label>
                 <input
-                  type="color"
+                  type="text"
                   value={text.color}
                   onChange={(e) => updateText(text.id, { color: e.target.value })}
-                  className="w-10 h-10 rounded-lg border-2 border-gray-200 cursor-pointer"
-                />
-                <Input
-                  value={text.color}
-                  onChange={(e) => updateText(text.id, { color: e.target.value })}
-                  className="flex-1"
+                  className="flex-1 px-3 py-2 text-sm font-mono border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
                 />
               </div>
-            </div>
+            </Section>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Rotación: {text.rotation}°</label>
-              <input
-                type="range"
-                min={-180}
-                max={180}
-                value={text.rotation}
-                onChange={(e) => updateText(text.id, { rotation: Number(e.target.value) })}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-              />
-            </div>
+            <Section title={`Tamaño · ${text.fontSize}px`}>
+              <input type="range" min={8} max={72} value={text.fontSize} onChange={(e) => updateText(text.id, { fontSize: Number(e.target.value) })} className="w-full accent-blue-500" />
+            </Section>
 
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-xs font-medium text-gray-500">Sombra: {text.shadow ?? 4}</label>
-                <input
-                  type="color"
-                  value={text.shadowColor ?? '#000000'}
-                  onChange={(e) => updateText(text.id, { shadowColor: e.target.value })}
-                  className="w-7 h-7 rounded border-2 border-gray-200 cursor-pointer"
-                  title="Color de sombra"
-                />
+            <Section title={`Rotación · ${text.rotation}°`}>
+              <input type="range" min={-180} max={180} value={text.rotation} onChange={(e) => updateText(text.id, { rotation: Number(e.target.value) })} className="w-full accent-blue-500" />
+            </Section>
+
+            <Section title={`Sombra · ${text.shadow ?? 4}px`}>
+              <div className="flex items-center gap-3">
+                <label className="relative w-8 h-8 rounded-full overflow-hidden cursor-pointer border-[3px] border-white shadow-sm">
+                  <input type="color" value={text.shadowColor ?? '#000000'} onChange={(e) => updateText(text.id, { shadowColor: e.target.value })} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                  <div className="w-full h-full rounded-full border border-slate-200" style={{ backgroundColor: text.shadowColor ?? '#000000' }} />
+                </label>
+                <input type="range" min={0} max={20} value={text.shadow ?? 4} onChange={(e) => updateText(text.id, { shadow: Number(e.target.value) })} className="flex-1 accent-blue-500" />
               </div>
-              <input
-                type="range"
-                min={0}
-                max={20}
-                value={text.shadow ?? 4}
-                onChange={(e) => updateText(text.id, { shadow: Number(e.target.value) })}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-              />
-            </div>
-          </div>
+            </Section>
+          </>
         )}
 
+        {/* ── Shape ── */}
         {shape && (
-          <div className="p-4 space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Tipo</label>
-              <p className="text-sm text-gray-700">{shape.type === 'polygon' ? 'Polígono' : 'Línea'}</p>
-            </div>
+          <>
+            <Section title="Tipo">
+              <div className="bg-slate-50 rounded-xl px-3 py-2 text-sm text-slate-700 border border-slate-100">
+                {shape.type === 'polygon' ? 'Polígono' : 'Línea'}
+              </div>
+            </Section>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-2">Color de borde</label>
+            <Section title="Color de borde">
               <div className="flex items-center gap-3">
+                <label className="relative w-10 h-10 rounded-full overflow-hidden cursor-pointer border-[3px] border-white shadow-md hover:shadow-lg transition-shadow">
+                  <input type="color" value={shape.borderColor} onChange={(e) => updateShape(shape.id, { borderColor: e.target.value })} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                  <div className="w-full h-full rounded-full border border-slate-200" style={{ backgroundColor: shape.borderColor }} />
+                </label>
                 <input
-                  type="color"
+                  type="text"
                   value={shape.borderColor}
                   onChange={(e) => updateShape(shape.id, { borderColor: e.target.value })}
-                  className="w-10 h-10 rounded-lg border-2 border-gray-200 cursor-pointer"
-                />
-                <Input
-                  value={shape.borderColor}
-                  onChange={(e) => updateShape(shape.id, { borderColor: e.target.value })}
-                  className="flex-1"
+                  className="flex-1 px-3 py-2 text-sm font-mono border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
                 />
               </div>
-            </div>
+            </Section>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-2">Color de relleno</label>
+            <Section title="Color de relleno">
               <div className="flex items-center gap-3">
+                <label className="relative w-10 h-10 rounded-full overflow-hidden cursor-pointer border-[3px] border-white shadow-md hover:shadow-lg transition-shadow">
+                  <input type="color" value={shape.fillColor} onChange={(e) => updateShape(shape.id, { fillColor: e.target.value })} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                  <div className="w-full h-full rounded-full border border-slate-200" style={{ backgroundColor: shape.fillColor }} />
+                </label>
                 <input
-                  type="color"
+                  type="text"
                   value={shape.fillColor}
                   onChange={(e) => updateShape(shape.id, { fillColor: e.target.value })}
-                  className="w-10 h-10 rounded-lg border-2 border-gray-200 cursor-pointer"
-                />
-                <Input
-                  value={shape.fillColor}
-                  onChange={(e) => updateShape(shape.id, { fillColor: e.target.value })}
-                  className="flex-1"
+                  className="flex-1 px-3 py-2 text-sm font-mono border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
                 />
               </div>
-            </div>
+            </Section>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Opacidad de relleno</label>
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.1}
-                value={shape.fillOpacity}
-                onChange={(e) => updateShape(shape.id, { fillOpacity: Number(e.target.value) })}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-              />
-            </div>
+            <Section title={`Opacidad de relleno · ${Math.round(shape.fillOpacity * 100)}%`}>
+              <input type="range" min={0} max={1} step={0.1} value={shape.fillOpacity} onChange={(e) => updateShape(shape.id, { fillOpacity: Number(e.target.value) })} className="w-full accent-blue-500" />
+            </Section>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Grosor de borde: {shape.borderWidth}px</label>
-              <input
-                type="range"
-                min={1}
-                max={10}
-                value={shape.borderWidth}
-                onChange={(e) => updateShape(shape.id, { borderWidth: Number(e.target.value) })}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-              />
-            </div>
-          </div>
+            <Section title={`Grosor de borde · ${shape.borderWidth}px`}>
+              <input type="range" min={1} max={10} value={shape.borderWidth} onChange={(e) => updateShape(shape.id, { borderWidth: Number(e.target.value) })} className="w-full accent-blue-500" />
+            </Section>
+          </>
         )}
 
+        {/* ── Image ── */}
         {image && (
-          <div className="p-4 space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Nombre</label>
-              <Input
-                value={image.name}
-                onChange={(e) => updateImage(image.id, { name: e.target.value })}
-                placeholder="Nombre de la imagen"
-              />
-            </div>
+          <>
+            <Section title="Información">
+              <Field label="Nombre">
+                <InputVal
+                  value={image.name}
+                  onChange={(v) => updateImage(image.id, { name: v })}
+                  placeholder="Nombre de la imagen"
+                />
+              </Field>
+            </Section>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Forma</label>
-              <div className="grid grid-cols-3 gap-2">
+            <Section title="Forma">
+              <div className="grid grid-cols-2 gap-1.5">
                 {([
-                  { value: 'square', label: 'Cuadrado' },
-                  { value: 'circle', label: 'Círculo' },
+                  { value: 'square', label: 'Cuadrado', icon: '▢' },
+                  { value: 'circle', label: 'Círculo', icon: '○' },
                 ] as const).map((opt) => (
                   <button
                     key={opt.value}
                     type="button"
                     onClick={() => updateImage(image.id, { shape: opt.value })}
-                    className={`px-2 py-2 text-xs rounded-lg border transition-colors ${
+                    className={`flex items-center justify-center gap-2 px-3 py-2.5 text-xs font-medium rounded-xl border-2 transition-all ${
                       image.shape === opt.value
-                        ? 'border-blue-500 bg-blue-50 text-blue-600'
-                        : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                        ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
+                        : 'border-slate-100 text-slate-600 hover:border-slate-300'
                     }`}
                   >
+                    <span className="text-base">{opt.icon}</span>
                     {opt.label}
                   </button>
                 ))}
               </div>
-            </div>
+            </Section>
 
             {(image.shape === 'square' || image.shape === 'circle') && (
-              <div className="space-y-3 border-t border-gray-100 pt-3">
-                <label className="block text-xs font-semibold text-gray-600">Borde</label>
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Grosor: {image.borderWidth}px</label>
-                  <input
-                    type="range"
-                    min={0}
-                    max={20}
-                    value={image.borderWidth}
-                    onChange={(e) => updateImage(image.id, { borderWidth: Number(e.target.value) })}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <label className="text-xs font-medium text-gray-500">Color</label>
-                  <input
-                    type="color"
-                    value={image.borderColor}
-                    onChange={(e) => updateImage(image.id, { borderColor: e.target.value })}
-                    className="w-8 h-8 rounded border border-gray-200 cursor-pointer"
-                  />
-                </div>
+              <Section title="Borde">
+                <Field label={`Grosor · ${image.borderWidth}px`}>
+                  <input type="range" min={0} max={20} value={image.borderWidth} onChange={(e) => updateImage(image.id, { borderWidth: Number(e.target.value) })} className="w-full accent-blue-500" />
+                </Field>
+                <Field label="Color">
+                  <label className="relative w-8 h-8 rounded-full overflow-hidden cursor-pointer border-[3px] border-white shadow-sm">
+                    <input type="color" value={image.borderColor} onChange={(e) => updateImage(image.id, { borderColor: e.target.value })} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                    <div className="w-full h-full rounded-full border border-slate-200" style={{ backgroundColor: image.borderColor }} />
+                  </label>
+                </Field>
                 {image.shape === 'square' && (
-                  <div className="mt-3">
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Esquinas: {image.cornerRadius}px</label>
-                    <input
-                      type="range"
-                      min={0}
-                      max={50}
-                      value={image.cornerRadius}
-                      onChange={(e) => updateImage(image.id, { cornerRadius: Number(e.target.value) })}
-                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                    />
-                  </div>
+                  <Field label={`Esquinas · ${image.cornerRadius}px`}>
+                    <input type="range" min={0} max={50} value={image.cornerRadius} onChange={(e) => updateImage(image.id, { cornerRadius: Number(e.target.value) })} className="w-full accent-blue-500" />
+                  </Field>
                 )}
-              </div>
+              </Section>
             )}
 
-            <div className="space-y-3 border-t border-gray-100 pt-3">
-              <label className="block text-xs font-semibold text-gray-600">Sombra</label>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Intensidad: {image.shadow}px</label>
-                <input
-                  type="range"
-                  min={0}
-                  max={30}
-                  value={image.shadow}
-                  onChange={(e) => updateImage(image.id, { shadow: Number(e.target.value) })}
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <label className="text-xs font-medium text-gray-500">Color de sombra</label>
-                <input
-                  type="color"
-                  value={image.shadowColor}
-                  onChange={(e) => updateImage(image.id, { shadowColor: e.target.value })}
-                  className="w-8 h-8 rounded border border-gray-200 cursor-pointer"
-                />
-              </div>
-            </div>
+            <Section title="Sombra">
+              <Field label={`Intensidad · ${image.shadow}px`}>
+                <input type="range" min={0} max={30} value={image.shadow} onChange={(e) => updateImage(image.id, { shadow: Number(e.target.value) })} className="w-full accent-blue-500" />
+              </Field>
+              <Field label="Color">
+                <label className="relative w-8 h-8 rounded-full overflow-hidden cursor-pointer border-[3px] border-white shadow-sm">
+                  <input type="color" value={image.shadowColor} onChange={(e) => updateImage(image.id, { shadowColor: e.target.value })} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                  <div className="w-full h-full rounded-full border border-slate-200" style={{ backgroundColor: image.shadowColor }} />
+                </label>
+              </Field>
+            </Section>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Tamaño: {image.width}px</label>
-              <input
-                type="range"
-                min={32}
-                max={300}
-                value={image.width}
-                onChange={(e) => {
-                  const v = Number(e.target.value)
-                  updateImage(image.id, { width: v, height: v })
-                }}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-              />
-            </div>
+            <Section title={`Tamaño · ${image.width}px`}>
+              <input type="range" min={32} max={300} value={image.width} onChange={(e) => { const v = Number(e.target.value); updateImage(image.id, { width: v, height: v }) }} className="w-full accent-blue-500" />
+            </Section>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Rotación: {image.rotation}°</label>
-              <input
-                type="range"
-                min={-180}
-                max={180}
-                value={image.rotation}
-                onChange={(e) => updateImage(image.id, { rotation: Number(e.target.value) })}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-              />
-            </div>
+            <Section title={`Rotación · ${image.rotation}°`}>
+              <input type="range" min={-180} max={180} value={image.rotation} onChange={(e) => updateImage(image.id, { rotation: Number(e.target.value) })} className="w-full accent-blue-500" />
+            </Section>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Opacidad: {Math.round(image.opacity * 100)}%</label>
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.05}
-                value={image.opacity}
-                onChange={(e) => updateImage(image.id, { opacity: Number(e.target.value) })}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-              />
-            </div>
+            <Section title={`Opacidad · ${Math.round(image.opacity * 100)}%`}>
+              <input type="range" min={0} max={1} step={0.05} value={image.opacity} onChange={(e) => updateImage(image.id, { opacity: Number(e.target.value) })} className="w-full accent-blue-500" />
+            </Section>
 
             <button
               type="button"
               onClick={() => openImageModal('edit', image.id)}
-              className="w-full px-3 py-2 text-sm font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 transition-colors"
+              className="w-full px-3 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all shadow-sm hover:shadow-md"
             >
               Cambiar imagen
             </button>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Vista previa (arrastra para encuadrar)</label>
-              <div className="border border-gray-200 rounded-lg p-2 flex items-center justify-center">
+            <Section title="Vista previa">
+              <p className="text-[11px] text-slate-400 mb-2">Arrastra para encuadrar</p>
+              <div className="border border-slate-200 rounded-xl p-3 flex items-center justify-center bg-slate-50">
                 <div
                   ref={imagePreviewRef}
                   onMouseDown={startImageCropDrag}
@@ -711,20 +594,46 @@ export function PropertiesPanel({ isOpen }: PropertiesPanelProps) {
                     src={image.url}
                     alt={image.name}
                     draggable={false}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      objectPosition: `${image.cropX}% ${image.cropY}%`,
-                      pointerEvents: 'none',
-                    }}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${image.cropX}% ${image.cropY}%`, pointerEvents: 'none' }}
                   />
                 </div>
               </div>
-            </div>
-          </div>
+            </Section>
+          </>
         )}
       </div>
     </aside>
+  )
+}
+
+/* ── Reusable sub-components ── */
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-2.5">
+      <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{title}</h3>
+      {children}
+    </div>
+  )
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1">
+      <label className="block text-xs font-medium text-slate-500">{label}</label>
+      {children}
+    </div>
+  )
+}
+
+function InputVal({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
+  return (
+    <input
+      type="text"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all placeholder:text-slate-300"
+    />
   )
 }
