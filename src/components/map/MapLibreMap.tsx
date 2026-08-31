@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import * as maplibregl from 'maplibre-gl'
+import { Map as MaplibreMap, Marker, NavigationControl, ScaleControl, AttributionControl, setWorkerUrl } from 'maplibre-gl'
+import type * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
+import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import { useMapStore } from '@/stores/map-store'
 import { useEditorStore } from '@/stores/editor-store'
 import { useProjectStore } from '@/stores/project-store'
@@ -17,6 +19,9 @@ import { MAP_STYLE, getMapStyleSpec } from '@/constants/map-styles'
 import { setMaplibregl } from '@/lib/maplibre'
 import { setMapInstance } from '@/lib/map-instance'
 import type { Coordinates, Tool, MapStyle } from '@/types/map'
+
+setWorkerUrl(maplibreWorkerUrl)
+setMaplibregl({ Marker } as typeof maplibregl)
 
 const ROUTE_AB_ID = 'route-ab'
 
@@ -153,7 +158,7 @@ export function MapLibreMap() {
       cursor: grab;
       box-shadow: 0 2px 6px rgba(0,0,0,0.3); border: 3px solid white;
     `
-    const marker = new maplibregl.Marker({ element: el, draggable: true })
+    const marker = new Marker({ element: el, draggable: true })
       .setLngLat(coords)
       .addTo(mapRef.current)
 
@@ -236,9 +241,7 @@ export function MapLibreMap() {
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return
 
-    setMaplibregl(maplibregl)
-
-    const newMap = new maplibregl.Map({
+    const newMap = new MaplibreMap({
       container: mapContainer.current,
       style: MAP_STYLE,
       center: [-72.545, -13.163],
@@ -246,12 +249,11 @@ export function MapLibreMap() {
       canvasContextAttributes: { preserveDrawingBuffer: true },
     })
 
-    newMap.on('error', () => setError('Error al cargar el mapa'))
+    newMap.on('error', (e: any) => console.error('MapLibre error:', e))
     newMap.on('load', () => { setIsMapLoaded(true); mapRef.current = newMap })
     newMap.on('style.load', () => {
       setIsMapLoaded(true)
       mapRef.current = newMap
-      // Re-apply project elements (routes/shapes) that live as style layers.
       bumpStyleEpoch()
     })
     newMap.on('move', () => {
@@ -263,9 +265,9 @@ export function MapLibreMap() {
     })
     newMap.on('click', handleMapClick)
 
-    newMap.addControl(new maplibregl.NavigationControl(), 'bottom-right')
-    newMap.addControl(new maplibregl.ScaleControl(), 'bottom-left')
-    newMap.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right')
+    newMap.addControl(new NavigationControl(), 'bottom-right')
+    newMap.addControl(new ScaleControl(), 'bottom-left')
+    newMap.addControl(new AttributionControl({ compact: true }), 'bottom-right')
     setMapInstance(newMap)
 
     return () => { newMap.remove(); mapRef.current = null }
