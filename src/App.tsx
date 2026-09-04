@@ -62,7 +62,7 @@ function createDefaultProject(): MapProject {
 }
 
 function EditorApp() {
-  const { sidebarOpen, propertiesPanelOpen, setSearchOpen } = useUIStore()
+  const { sidebarOpen, propertiesPanelOpen, setSearchOpen, toggleSidebar } = useUIStore()
   const { project, setProject } = useProjectStore()
   const { setActiveLayer, resetHistory } = useEditorStore()
 
@@ -131,7 +131,7 @@ function EditorApp() {
       <Header />
 
       <div className="flex-1 flex overflow-hidden">
-        <Sidebar isOpen={sidebarOpen} />
+        <Sidebar isOpen={sidebarOpen} onClose={toggleSidebar} />
 
         <main className="flex-1 flex flex-col overflow-hidden relative">
           <MapLibreMap />
@@ -153,13 +153,17 @@ function EditorApp() {
 }
 
 function App() {
-  const [route, setRoute] = useState<'landing' | 'editor'>(() =>
-    window.location.hash === '#/editor' ? 'editor' : 'landing'
-  )
+  const [route, setRoute] = useState<'landing' | 'editor'>(() => {
+    const hash = window.location.hash
+    if (hash === '#/editor') return 'editor'
+    return 'landing'
+  })
 
   useEffect(() => {
     const onHash = () => {
-      setRoute(window.location.hash === '#/editor' ? 'editor' : 'landing')
+      const hash = window.location.hash
+      if (hash === '#/editor') setRoute('editor')
+      else setRoute('landing')
     }
     window.addEventListener('hashchange', onHash)
     return () => window.removeEventListener('hashchange', onHash)
@@ -167,7 +171,11 @@ function App() {
 
   if (route === 'editor') return <EditorApp />
 
-  return <LandingPage onEnter={() => { window.location.hash = '#/editor' }} />
+  return (
+    <LandingPage
+      onEnter={() => { window.location.hash = '#/editor' }}
+    />
+  )
 }
 
 export default App

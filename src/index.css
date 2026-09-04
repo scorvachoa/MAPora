@@ -278,3 +278,20 @@ body {
 .animate-fade-in {
   animation: fadeIn 0.2s ease-out both;
 }
+
+@keyframes bounce-dot {
+  0%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-6px); }
+}
+
+.animate-bounce-dot {
+  animation: bounce-dot 1.4s infinite ease-in-out both;
+}
+
+.animate-bounce-dot:nth-child(1) { animation-delay: -0.32s; }
+.animate-bounce-dot:nth-child(2) { animation-delay: -0.16s; }
+
+/* AI Map markers */
+.maplibregl-popup {
+  max-width: 250px !important;
+}

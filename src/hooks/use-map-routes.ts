@@ -3,6 +3,7 @@ import { useProjectStore } from '@/stores/project-store'
 import { useEditorStore } from '@/stores/editor-store'
 import { useMapStore } from '@/stores/map-store'
 import { isLayerVisible } from '@/lib/layer-utils'
+import type { Coordinates } from '@/types/map'
 
 function getLineDashArray(style?: string): number[] | null {
   if (style === 'dashed') return [2, 2]
@@ -14,6 +15,7 @@ interface RouteHandlers {
   click: () => void
   mouseenter: () => void
   mouseleave: () => void
+  dblclick: (e: any) => void
 }
 
 export function useMapRoutes(mapRef: React.RefObject<any>) {
@@ -36,11 +38,12 @@ export function useMapRoutes(mapRef: React.RefObject<any>) {
         const sourceId = `route-${id}`
         // Clean up event listeners before removing layer
         const h = handlers.get(id)
-        if (h) {
+          if (h) {
           if (map.getLayer(sourceId)) {
             map.off('click', sourceId, h.click)
             map.off('mouseenter', sourceId, h.mouseenter)
             map.off('mouseleave', sourceId, h.mouseleave)
+            map.off('dblclick', sourceId, h.dblclick)
           }
           handlers.delete(id)
         }
@@ -60,6 +63,7 @@ export function useMapRoutes(mapRef: React.RefObject<any>) {
             map.off('click', sourceId, h.click)
             map.off('mouseenter', sourceId, h.mouseenter)
             map.off('mouseleave', sourceId, h.mouseleave)
+            map.off('dblclick', sourceId, h.dblclick)
           }
           handlers.delete(routeData.id)
         }
@@ -103,12 +107,49 @@ export function useMapRoutes(mapRef: React.RefObject<any>) {
         const clickHandler = () => { setSelectedElement(routeData.id) }
         const enterHandler = () => { map.getCanvas().style.cursor = 'pointer' }
         const leaveHandler = () => { map.getCanvas().style.cursor = '' }
+        const dblClickHandler = (e: any) => {
+          if (!e.lngLat) return
+          const coords = routeData.coordinates
+          if (coords.length < 2) return
+
+          const clickLng = e.lngLat.lng
+          const clickLat = e.lngLat.lat
+
+          let bestDist = Infinity
+          let bestIdx = 0
+
+          for (let i = 0; i < coords.length - 1; i++) {
+            const [ax, ay] = coords[i]
+            const [bx, by] = coords[i + 1]
+            const dx = bx - ax
+            const dy = by - ay
+            const lenSq = dx * dx + dy * dy
+            let t = lenSq === 0 ? 0 : ((clickLng - ax) * dx + (clickLat - ay) * dy) / lenSq
+            t = Math.max(0, Math.min(1, t))
+            const px = ax + t * dx
+            const py = ay + t * dy
+            const dist = (clickLng - px) ** 2 + (clickLat - py) ** 2
+            if (dist < bestDist) {
+              bestDist = dist
+              bestIdx = i
+            }
+          }
+
+          const newCoord: Coordinates = [clickLng, clickLat]
+          const newCoords = [...coords]
+          newCoords.splice(bestIdx + 1, 0, newCoord)
+
+          const { updateRoute } = useProjectStore.getState()
+          updateRoute(routeData.id, { coordinates: newCoords })
+          setSelectedElement(routeData.id)
+        }
 
         map.on('click', sourceId, clickHandler)
         map.on('mouseenter', sourceId, enterHandler)
         map.on('mouseleave', sourceId, leaveHandler)
+        map.on('dblclick', sourceId, dblClickHandler)
 
-        handlers.set(routeData.id, { click: clickHandler, mouseenter: enterHandler, mouseleave: leaveHandler })
+        handlers.set(routeData.id, { click: clickHandler, mouseenter: enterHandler, mouseleave: leaveHandler, dblclick: dblClickHandler })
         currentRoutes.set(routeData.id, true)
       } else {
         source.setData({

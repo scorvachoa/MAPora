@@ -14,11 +14,11 @@ import {
   Compass,
   ArrowRight,
   Map as MapIcon,
-  Sparkles,
   History,
   FileText,
   Keyboard,
   CircleDot,
+  Upload,
 } from 'lucide-react'
 
 const TOOLS = [
@@ -29,16 +29,18 @@ const TOOLS = [
   { icon: Pentagon, label: 'Dibujar forma', desc: 'Crea áreas y polígonos.' },
   { icon: Type, label: 'Añadir texto', desc: 'Etiquetas y títulos personalizados.' },
   { icon: Image, label: 'Añadir imagen', desc: 'Inserta fotos o superposiciones.' },
+  { icon: Upload, label: 'Importar GPX', desc: 'Carga archivos GPX con rutas y waypoints.' },
 ]
 
 const FEATURES = [
   { icon: Layers, label: 'Capas organizadas', desc: 'Agrupa puntos y rutas por tema, con colores y visibilidad tipo Photoshop.' },
   { icon: Palette, label: 'Estilos de mapa', desc: 'Callejero, satélite, híbrido, terreno, OpenStreetMap y topográfico.' },
+  { icon: Upload, label: 'Importar GPX', desc: 'Carga archivos GPX de Wikiloc u otros para editar rutas y waypoints directamente.' },
+  { icon: CircleDot, label: 'Nodos editables', desc: 'Arrastra vértices de rutas y formas, selección múltiple con Shift+clic.' },
   { icon: Undo2, label: 'Historial', desc: 'Deshaz y rehaz cualquier cambio al instante.' },
   { icon: Save, label: 'Guardado automático', desc: 'Tu proyecto se guarda en el navegador y puedes exportarlo.' },
   { icon: Download, label: 'Exportar', desc: 'Descarga tu mapa como imagen, PDF o archivo .mapora.' },
   { icon: Compass, label: 'Vistas precisas', desc: 'Controla zoom, inclinación y norte de forma exacta.' },
-  { icon: CircleDot, label: 'Nodos editables', desc: 'Arrastra vértices de rutas y formas para ajustar su trazado.' },
   { icon: History, label: 'Versiones', desc: 'Guarda snapshots del proyecto y restaura versiones anteriores.' },
   { icon: FileText, label: 'Guardar como', desc: 'Duplica tu proyecto para crear variantes sin perder el original.' },
   { icon: Keyboard, label: 'Atajos de teclado', desc: 'Ctrl+Z deshacer, Ctrl+S guardar, y más. Pulsa ? para ver todos.' },
@@ -47,6 +49,7 @@ const FEATURES = [
 const STEPS = [
   'Selecciona una herramienta en la barra lateral izquierda.',
   'Haz clic en el mapa para colocar puntos o trazar rutas.',
+  'Importa un archivo GPX desde el botón "GPX" en la barra superior.',
   'Edita los nodos arrastrando vértices para afinar el trazado.',
   'Organiza todo en capas y elige el estilo visual.',
   'Exporta tu mapa turístico final con un solo clic.',
@@ -63,20 +66,22 @@ export function LandingPage({ onEnter }: { onEnter: () => void }) {
             </div>
             <span className="text-lg font-extrabold tracking-tight text-slate-800">MAPORA</span>
           </div>
-          <button
-            onClick={onEnter}
-            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-blue-500/30 transition-all hover:to-blue-600 hover:shadow-lg active:scale-95"
-          >
-            Entrar al editor
-            <ArrowRight className="h-4 w-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onEnter}
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-blue-500/30 transition-all hover:to-blue-600 hover:shadow-lg active:scale-95"
+            >
+              Entrar al editor
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </header>
 
       <main className="mx-auto max-w-6xl px-6">
         <section className="py-16 text-center lg:py-24">
           <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600">
-            <Sparkles className="h-3.5 w-3.5" />
+            <MapIcon className="h-3.5 w-3.5" />
             Creador de mapas turísticos
           </span>
           <h1 className="mx-auto mt-5 max-w-3xl text-4xl font-extrabold leading-tight tracking-tight text-slate-900 sm:text-5xl">
@@ -86,7 +91,7 @@ export function LandingPage({ onEnter }: { onEnter: () => void }) {
             </span>
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-slate-500">
-            Marca sitios de interés, traza rutas con nodos editables, organízalos en capas
+            Marca sitios de interés, traza rutas con nodos editables, importa archivos GPX
             y expórtalos como imagen o PDF. Todo desde el navegador, sin instalar nada.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
@@ -176,6 +181,21 @@ export function LandingPage({ onEnter }: { onEnter: () => void }) {
               Empieza ahora
               <ArrowRight className="h-5 w-5" />
             </button>
+          </div>
+        </section>
+
+        <section className="pb-16">
+          <div className="rounded-2xl border border-slate-100 bg-white p-8 shadow-sm text-center">
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center">
+                <MapIcon className="h-8 w-8 text-emerald-600" />
+              </div>
+            </div>
+            <h2 className="text-xl font-bold text-slate-800 mb-2">Base cartográfica OpenStreetMap</h2>
+            <p className="text-sm leading-relaxed text-slate-500 max-w-xl mx-auto">
+              MAPORA utiliza datos de <a href="https://www.openstreetmap.org/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">OpenStreetMap</a>, un proyecto de mapa colaborativo y abierto bajo licencia <a href="https://opendatacommons.org/licenses/odbl/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">ODbL</a>.
+              Los datos cartográficos son contribuciones de miles de voluntarios en todo el mundo.
+            </p>
           </div>
         </section>
       </main>

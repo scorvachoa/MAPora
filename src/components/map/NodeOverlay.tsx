@@ -12,7 +12,7 @@ interface Node {
 }
 
 export function NodeOverlay() {
-  const { selectedElementId, activeTool } = useEditorStore()
+  const { selectedElementId, activeTool, selectedNodeIndices, setSelectedNodeIndices, toggleNodeSelection } = useEditorStore()
   const { project, updateRoute, updateShape } = useProjectStore()
   const [nodes, setNodes] = useState<Node[]>([])
   const [isDragging, setIsDragging] = useState(false)
@@ -20,6 +20,7 @@ export function NodeOverlay() {
   const offsetRef = useRef<{ dx: number; dy: number }>({ dx: 0, dy: 0 })
   const coordsRef = useRef<Coordinates[]>([])
   const dragFrameRef = useRef<number | null>(null)
+  const didDragRef = useRef(false)
 
   const getData = useCallback((): { coords: Coordinates[]; type: 'route' | 'shape'; ringIdx?: number } | null => {
     if (!selectedElementId || !project) return null
@@ -47,6 +48,7 @@ export function NodeOverlay() {
   useEffect(() => {
     if (!selectedElementId || activeTool !== 'select') {
       setNodes([])
+      setSelectedNodeIndices([])
       return
     }
 
@@ -80,7 +82,7 @@ export function NodeOverlay() {
       map.off('zoom', refresh)
       map.off('resize', refresh)
     }
-  }, [selectedElementId, activeTool, getData, projectNodes])
+  }, [selectedElementId, activeTool, getData, projectNodes, setSelectedNodeIndices])
 
   useEffect(() => {
     if (!isDragging) return
@@ -98,6 +100,8 @@ export function NodeOverlay() {
         dragFrameRef.current = null
         const idx = draggingIndexRef.current
         if (idx === null) return
+
+        didDragRef.current = true
 
         const containerX = e.clientX - rect.left
         const containerY = e.clientY - rect.top
@@ -152,6 +156,13 @@ export function NodeOverlay() {
   const handleNodeMouseDown = useCallback((e: React.MouseEvent, index: number) => {
     e.stopPropagation()
     e.preventDefault()
+    didDragRef.current = false
+
+    if (e.shiftKey) {
+      toggleNodeSelection(index)
+      return
+    }
+
     const node = nodes[index]
     if (!node) return
     const map = getMapInstance()
@@ -163,35 +174,93 @@ export function NodeOverlay() {
     draggingIndexRef.current = index
     setIsDragging(true)
     setNodes((prev) => [...prev])
-  }, [nodes])
+  }, [nodes, toggleNodeSelection])
+
+  const handleDeleteSelected = useCallback(() => {
+    const data = getData()
+    if (!data || selectedNodeIndices.length === 0) return
+    if (data.coords.length - selectedNodeIndices.length < 2) return
+
+    const newCoords = data.coords.filter((_, i) => !selectedNodeIndices.includes(i))
+    if (data.type === 'route') {
+      const route = project?.routes.find((r) => r.id === selectedElementId)
+      if (route) updateRoute(route.id, { coordinates: newCoords })
+    } else if (data.type === 'shape' && data.ringIdx !== undefined) {
+      const shape = project?.shapes.find((s) => s.id === selectedElementId)
+      if (shape) {
+        const newCoordinates = [...shape.coordinates]
+        newCoordinates[data.ringIdx] = newCoords
+        updateShape(shape.id, { coordinates: newCoordinates as any })
+      }
+    }
+    setSelectedNodeIndices([])
+  }, [getData, selectedNodeIndices, project, selectedElementId, updateRoute, updateShape, setSelectedNodeIndices])
+
+  useEffect(() => {
+    if (selectedNodeIndices.length === 0) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault()
+        handleDeleteSelected()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [selectedNodeIndices, handleDeleteSelected])
 
   if (nodes.length === 0 || activeTool !== 'select') return null
 
   return (
     <div className="absolute inset-0 z-20 pointer-events-none">
-      {nodes.map((node) => (
+      {nodes.map((node) => {
+        const isSelected = selectedNodeIndices.includes(node.index)
+        return (
+          <div
+            key={node.index}
+            className="absolute pointer-events-auto"
+            style={{
+              left: node.x,
+              top: node.y,
+              transform: 'translate(-50%, -50%)',
+            }}
+          >
+            <div
+              onMouseDown={(e) => handleNodeMouseDown(e, node.index)}
+              className={`w-3 h-3 rounded-full border-2 shadow-md cursor-grab active:cursor-grabbing transition-all ${
+                isSelected
+                  ? 'bg-white border-red-500 scale-125 shadow-lg'
+                  : draggingIndexRef.current === node.index
+                  ? 'bg-blue-400 border-white scale-110'
+                  : node.index === 0
+                  ? 'bg-emerald-500 border-white hover:bg-emerald-400'
+                  : 'bg-blue-500 border-white hover:bg-blue-400'
+              }`}
+              title={node.index === 0 ? 'Punto inicial' : `Punto ${node.index + 1}`}
+            />
+          </div>
+        )
+      })}
+
+      {selectedNodeIndices.length > 0 && (
         <div
-          key={node.index}
           className="absolute pointer-events-auto"
           style={{
-            left: node.x,
-            top: node.y,
-            transform: 'translate(-50%, -50%)',
+            left: nodes.find((n) => n.index === selectedNodeIndices[0])?.x ?? 0,
+            top: (nodes.find((n) => n.index === selectedNodeIndices[0])?.y ?? 0) - 28,
+            transform: 'translate(-50%, -100%)',
           }}
         >
-          <div
-            onMouseDown={(e) => handleNodeMouseDown(e, node.index)}
-            className={`w-3 h-3 rounded-full border-2 border-white shadow-md cursor-grab active:cursor-grabbing transition-colors ${
-              draggingIndexRef.current === node.index
-                ? 'bg-blue-500 scale-125'
-                : node.index === 0
-                ? 'bg-emerald-500 hover:bg-emerald-400'
-                : 'bg-blue-500 hover:bg-blue-400'
-            }`}
-            title={node.index === 0 ? 'Punto inicial' : `Punto ${node.index + 1}`}
-          />
+          <button
+            onClick={handleDeleteSelected}
+            className="flex items-center gap-1 px-2 py-1 rounded-lg bg-red-500 text-white text-[10px] font-bold shadow-md hover:bg-red-600 transition-colors whitespace-nowrap"
+          >
+            <span>×</span>
+            <span>{selectedNodeIndices.length === 1 ? 'Eliminar' : `Eliminar ${selectedNodeIndices.length}`}</span>
+          </button>
         </div>
-      ))}
+      )}
     </div>
   )
 }

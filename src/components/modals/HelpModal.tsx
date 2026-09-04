@@ -1,9 +1,9 @@
-import { X, MousePointer2, MapPin, Navigation, Route, Pentagon, Type, Image, Layers, Palette, Undo2, Save, Download, Maximize, Clock, Copy, Pencil } from 'lucide-react'
+import { X, MousePointer2, MapPin, Navigation, Route, Pentagon, Type, Image, Layers, Palette, Undo2, Save, Download, Maximize, Clock, Copy, Pencil, CircleDot } from 'lucide-react'
 import { useUIStore } from '@/stores/ui-store'
 import { useModalAccessibility } from '@/hooks/use-modal-accessibility'
 
 const TOOLS = [
-  { icon: MousePointer2, label: 'Seleccionar', desc: 'Selecciona elementos del mapa para editarlos. Al seleccionar una ruta o forma, aparecen nodos arrastrables en cada vértice para modificar la geometría.', shortcut: 'V' },
+  { icon: MousePointer2, label: 'Seleccionar', desc: 'Selecciona elementos del mapa para editarlos.', shortcut: 'V' },
   { icon: MapPin, label: 'Añadir punto', desc: 'Haz clic en el mapa para colocar un marcador (POI). Puedes elegir icono, color y tamaño en el panel de propiedades.', shortcut: 'M' },
   { icon: Navigation, label: 'Ruta A-B', desc: 'Calcula una ruta automática entre dos puntos usando OSRM. Selecciona modo de transporte (auto, bici, pie) y se dibuja la ruta más corta.', shortcut: 'A' },
   { icon: Route, label: 'Dibujar línea', desc: 'Traza una línea a mano alzada haciendo clic en el mapa. Doble clic para finalizar. Ideal para senderos y recorridos.', shortcut: 'L' },
@@ -65,6 +65,30 @@ export function HelpModal() {
           </section>
 
           <section>
+            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3">Edición de nodos</h3>
+            <div className="space-y-2">
+              <div className="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
+                  <CircleDot className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-700">Modificar rutas y formas</p>
+                  <p className="text-xs leading-relaxed text-slate-500 mt-0.5">Al seleccionar una ruta o forma, aparecen puntos (nodos) en cada vértice. Arrastra un nodo para moverlo. Haz doble clic en la línea para insertar un nuevo nodo entre los más cercanos.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-600">
+                  <span className="text-lg font-bold">×</span>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-700">Eliminar nodos</p>
+                  <p className="text-xs leading-relaxed text-slate-500 mt-0.5">Selecciona un nodo con clic normal. Usa <kbd className="px-1 py-0.5 text-[10px] font-mono font-bold text-slate-400 bg-slate-100 rounded">Shift+clic</kbd> para seleccionar varios nodos. Luego pulsa <kbd className="px-1 py-0.5 text-[10px] font-mono font-bold text-slate-400 bg-slate-100 rounded">Supr</kbd> o haz clic en el botón rojo × para eliminarlos.</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section>
             <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3">Acciones</h3>
             <div className="grid gap-2 sm:grid-cols-2">
               {ACTIONS.map((action) => (
@@ -113,6 +137,8 @@ export function HelpModal() {
               <span><kbd className="font-mono font-bold">T</kbd> Texto</span>
               <span><kbd className="font-mono font-bold">I</kbd> Imagen</span>
               <span><kbd className="font-mono font-bold">Esc</kbd> Deseleccionar</span>
+              <span><kbd className="font-mono font-bold">Supr</kbd> Eliminar nodos seleccionados</span>
+              <span><kbd className="font-mono font-bold">Shift+clic</kbd> Selección múltiple de nodos</span>
             </div>
           </section>
         </div>

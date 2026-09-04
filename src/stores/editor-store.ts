@@ -21,6 +21,7 @@ interface EditorState {
   imageModal: { open: boolean; mode: 'new' | 'edit'; imageId?: string }
   canUndo: boolean
   canRedo: boolean
+  selectedNodeIndices: number[]
   setActiveTool: (tool: Tool) => void
   setSelectedElement: (id: string | null) => void
   setActiveLayer: (id: string | null) => void
@@ -28,6 +29,8 @@ interface EditorState {
   setDrawingRemoveLastPoint: (fn: (() => void) | null) => void
   openImageModal: (mode: 'new' | 'edit', imageId?: string) => void
   closeImageModal: () => void
+  setSelectedNodeIndices: (indices: number[]) => void
+  toggleNodeSelection: (index: number) => void
   resetHistory: (project: MapProject | null) => void
   record: (label?: string) => void
   undo: () => void
@@ -43,13 +46,23 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   canUndo: false,
   canRedo: false,
   imageModal: { open: false, mode: 'new' },
-  setActiveTool: (tool) => set({ activeTool: tool, selectedElementId: null }),
-  setSelectedElement: (id) => set({ selectedElementId: id }),
+  selectedNodeIndices: [],
+  setActiveTool: (tool) => set({ activeTool: tool, selectedElementId: null, selectedNodeIndices: [] }),
+  setSelectedElement: (id) => set({ selectedElementId: id, selectedNodeIndices: [] }),
   setActiveLayer: (id) => set({ activeLayerId: id }),
   setDrawing: (drawing) => set({ isDrawing: drawing }),
   setDrawingRemoveLastPoint: (fn) => set({ drawingRemoveLastPoint: fn }),
   openImageModal: (mode, imageId) => set({ imageModal: { open: true, mode, imageId } }),
   closeImageModal: () => set({ imageModal: { open: false, mode: 'new' } }),
+  setSelectedNodeIndices: (indices) => set({ selectedNodeIndices: indices }),
+  toggleNodeSelection: (index) => set((state) => {
+    const exists = state.selectedNodeIndices.includes(index)
+    return {
+      selectedNodeIndices: exists
+        ? state.selectedNodeIndices.filter((i) => i !== index)
+        : [...state.selectedNodeIndices, index],
+    }
+  }),
 
   resetHistory: (project) => {
     undoStack.reset(project)

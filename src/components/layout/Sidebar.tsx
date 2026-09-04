@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { 
   MousePointer2, 
   MapPin, 
@@ -65,11 +65,25 @@ const LAYER_COLORS = [
   { id: 'teal', color: '#00897b', label: 'Turquesa' },
 ]
 
-interface SidebarProps {
-  isOpen: boolean
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)')
+    setIsMobile(mq.matches)
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+  return isMobile
 }
 
-export function Sidebar({ isOpen }: SidebarProps) {
+interface SidebarProps {
+  isOpen: boolean
+  onClose?: () => void
+}
+
+export function Sidebar({ isOpen, onClose }: SidebarProps) {
+  const isMobile = useIsMobile()
   const { activeTool, setActiveTool, activeLayerId, setActiveLayer, selectedElementId, setSelectedElement } = useEditorStore()
   const {
     project,
@@ -217,11 +231,19 @@ export function Sidebar({ isOpen }: SidebarProps) {
     setDeleteConfirm({ show: false, layerId: null, layerName: '' })
   }
 
+  const handleToolClick = useCallback((toolId: Tool) => {
+    setActiveTool(toolId)
+    if (isMobile) onClose?.()
+  }, [setActiveTool, isMobile, onClose])
+
   if (!isOpen) return null
 
-  return (
+  const sidebarContent = (
     <>
-    <aside className="w-72 bg-white border-r border-slate-200 flex flex-col shrink-0 shadow-lg shadow-slate-300/40 animate-slide-in-left">
+    <aside className={cn(
+      'bg-white border-slate-200 flex flex-col shrink-0 shadow-lg shadow-slate-300/40 animate-slide-in-left',
+      isMobile ? 'fixed inset-y-0 left-0 z-40 w-72' : 'w-72 border-r'
+    )}>
       <div className="p-3 border-b border-slate-100">
         <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.1em] mb-3 px-1">
           Herramientas de edición
@@ -234,7 +256,7 @@ export function Sidebar({ isOpen }: SidebarProps) {
                 'tool-btn',
                 activeTool === tool.id && 'active'
               )}
-              onClick={() => setActiveTool(tool.id)}
+              onClick={() => handleToolClick(tool.id)}
               title={tool.label}
             >
               <span style={{ color: activeTool === tool.id ? '#2563eb' : tool.color }}>
@@ -458,4 +480,15 @@ export function Sidebar({ isOpen }: SidebarProps) {
     />
     </>
   )
+
+  if (isMobile) {
+    return (
+      <>
+        <div className="fixed inset-0 z-30 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+        {sidebarContent}
+      </>
+    )
+  }
+
+  return sidebarContent
 }

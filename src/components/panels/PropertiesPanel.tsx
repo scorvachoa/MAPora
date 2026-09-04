@@ -1,7 +1,8 @@
-import { useRef, type MouseEvent as ReactMouseEvent } from 'react'
-import { X, MapPin, Route, Type, Pentagon, Trash2, Image } from 'lucide-react'
+import { useRef, useState, useEffect, type MouseEvent as ReactMouseEvent } from 'react'
+import { X, MapPin, Route, Type, Pentagon, Trash2, Image, Plus } from 'lucide-react'
 import { useProjectStore } from '@/stores/project-store'
 import { useEditorStore } from '@/stores/editor-store'
+import { cn } from '@/lib/utils'
 import { MARKER_ICONS, MARKER_COLORS } from '@/constants/marker-icons'
 import { routingService, type RouteProfile, getProfileLabel } from '@/services/routing'
 import type { Coordinates } from '@/types/map'
@@ -26,11 +27,24 @@ const FONT_OPTIONS: { value: string; label: string }[] = [
   { value: 'Comic Sans MS', label: 'Comic Sans' },
 ]
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)')
+    setIsMobile(mq.matches)
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+  return isMobile
+}
+
 interface PropertiesPanelProps {
   isOpen: boolean
 }
 
 export function PropertiesPanel({ isOpen }: PropertiesPanelProps) {
+  const isMobile = useIsMobile()
   const { project, updateMarker, updateRoute, updateText, updateShape, updateImage, removeMarker, removeRoute, removeText, removeShape, removeImage } = useProjectStore()
   const { selectedElementId, setSelectedElement, openImageModal } = useEditorStore()
 
@@ -135,7 +149,12 @@ export function PropertiesPanel({ isOpen }: PropertiesPanelProps) {
   }
 
   return (
-    <aside className="w-80 bg-white border-l border-slate-200 flex flex-col shrink-0 shadow-sm">
+    <aside className={cn(
+      'bg-white flex flex-col shrink-0',
+      isMobile
+        ? 'fixed inset-x-0 bottom-0 z-40 max-h-[75vh] rounded-t-2xl shadow-[0_-4px_20px_rgba(0,0,0,0.15)] animate-slide-in-right'
+        : 'w-80 border-l border-slate-200 shadow-sm'
+    )}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
         <div className="flex items-center gap-2.5">
@@ -344,6 +363,23 @@ export function PropertiesPanel({ isOpen }: PropertiesPanelProps) {
               {route.distance != null && <p className="text-sm text-slate-700">{(route.distance / 1000).toFixed(2)} km</p>}
               {route.duration != null && <p className="text-sm text-slate-700">{Math.round(route.duration / 60)} min</p>}
             </div>
+
+            <Section title="Nodos">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    const last = route.coordinates[route.coordinates.length - 1]
+                    const newCoord: Coordinates = [last[0] + 0.001, last[1] + 0.001]
+                    updateRoute(route.id, { coordinates: [...route.coordinates, newCoord] })
+                  }}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-blue-600 bg-blue-50 rounded-xl hover:bg-blue-100 transition-colors border border-blue-100"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Añadir
+                </button>
+              </div>
+              <p className="text-[10px] text-slate-400 text-center">Doble clic en la línea para insertar un punto · Shift+clic para selección múltiple · Supr para eliminar</p>
+            </Section>
           </>
         )}
 
